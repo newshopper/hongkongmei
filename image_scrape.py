@@ -4,15 +4,15 @@ import datetime
 import requests
 # User-Agent: android:com.example.myredditapp:v1.2.3 (by /u/kemitche)
 
-clientId = 'v7f2THUITIen3w'
-clientSecret = 'c9_FiE0sv2F1pDnIricnAhd7Qq0'
-userAgent = 'script:com.example.Crawler:v1.0 (by /u/bhsgsh)'
+clientId = 'YOUR CLIENT ID HERE'
+clientSecret = 'YOUR CLIENT SECRET HERE'
+userAgent = 'YOUR USER AGENT HERE'
 
 reddit = praw.Reddit(client_id=clientId,
                      client_secret=clientSecret,
                      user_agent=userAgent,
-                     username='bhsgsh',
-                     password='ka01bhs#X8389')
+                     username='YOUR USERNAME HERE',
+                     password='YOUR PASSWORD HERE')
 
 
 # for submission in reddit.subreddit('blizzard').hot(limit=10):
