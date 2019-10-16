@@ -23,7 +23,7 @@ with open('gaming.json') as gaming:
 def get_subreddit_dict(subreddit):
    if subreddit == 'blizzard':
        return bliz_dict
-   elif subreddit == 'gamning':
+   elif subreddit == 'gaming':
         return gaming_dict
    elif subreddit == 'hearthstone':
         return hs_dict
