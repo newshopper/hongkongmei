@@ -1,33 +1,39 @@
 import json
 
 PREVIEW_KEY = 'preview'
+SUBRED_BLIZZARD = 'blizzard'
+SUBRED_GAMING = 'gaming'
+SUBRED_HONGKONG = 'HongKong'
+SUBRED_OVERWATCH = 'overwatch'
+SUBRED_HEARTHSTONE = 'hearthstone'
+
 with open('posts.txt') as posts:
     posts_dict = json.load(posts)
 posts.close()
 
-with open('HongKong.json') as hk:
+with open(SUBRED_HONGKONG + '.json') as hk:
     hk_dict = json.load(hk)
 
-with open('overwatch.json') as overwatch:
+with open(SUBRED_OVERWATCH + '.json') as overwatch:
     overwatch_dict = json.load(overwatch)
 
-with open('hearthstone.json') as hs:
+with open(SUBRED_HEARTHSTONE + '.json') as hs:
     hs_dict = json.load(hs)
 
-with open('blizzard.json') as bliz:
+with open(SUBRED_BLIZZARD + '.json') as bliz:
     bliz_dict = json.load(bliz)
 
-with open('gaming.json') as gaming:
+with open(SUBRED_GAMING + '.json') as gaming:
     gaming_dict = json.load(gaming)
 
 def get_subreddit_dict(subreddit):
-   if subreddit == 'blizzard':
+   if subreddit == SUBRED_BLIZZARD:
        return bliz_dict
-   elif subreddit == 'gaming':
+   elif subreddit == SUBRED_GAMING:
         return gaming_dict
-   elif subreddit == 'hearthstone':
+   elif subreddit == SUBRED_HEARTHSTONE:
         return hs_dict
-   elif subreddit == 'overwatch':
+   elif subreddit == SUBRED_OVERWATCH:
         return overwatch_dict
    else:
         return hk_dict
