@@ -34,8 +34,8 @@ def main():
     topic = ['hearthstone','gaming','HongKong','overwatch','blizzard']
     for name in topic:
         output = extractFields(name)
-        with open(name + '.json', 'w') as fp:
-            json.dump(output, fp)
+        with open(name + '.json', 'w') as reddit_data_file:
+            json.dump(output, reddit_data_file, indent=4, sort_keys=False)
 
 if __name__ == '__main__':
     main()
