@@ -2,16 +2,16 @@ import json
 import pandas as pd
 
 all_posts = pd.DataFrame(columns=["author","author_fullname","created_utc","full_link","id","is_self","is_video","num_comments","num_crossposts","score","selftext","subreddit","title","url"])
-keywords = ["Mei", "China", "hearthstone", "overwatch", "Chinese", "blitzching", "Hong Kong", "democracy",
-                "freedom", "revolution", "liberate", "Xi Jinping", "winnie"]
+keywords = ["Mei"]
 
 with open("posts.txt") as f:
     posts_json = json.load(f)
 
 for subreddit in posts_json:
     for post in posts_json[subreddit]: #Iterate through all the reddits, within them find an array
-        teststring = post['title'] + '' + post['selftext']
-        if 'preview' in post and any(item in teststring for item in keywords):
+        test_string = post['title'] + '' + post['selftext']
+        # print(post)
+        if 'post_hint' in post.keys() and post['post_hint'] == 'image' and any(item in test_string for item in keywords):
             try:
                 all_posts = all_posts.append({
                     "author": post["author"],
@@ -48,4 +48,4 @@ for subreddit in posts_json:
                 }, ignore_index=True)
 
 
-all_posts.to_csv("filtered_posts.csv", index=False)
+all_posts.to_csv("filtered_mei_posts.csv", index=False)
