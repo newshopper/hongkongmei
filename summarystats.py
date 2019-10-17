@@ -1,13 +1,15 @@
 import json
 import operator
 import csv
+import math
 topic = ['hearthstone','gaming','HongKong','overwatch','blizzard']
 
 author = {}
+earliest_post = math.inf
 for name in topic:
     with open(name + '.json') as f:
-        json_data = json.load(f) 
-
+        json_data = json.load(f)
+        
     for k in sorted(json_data, key=lambda k: len(json_data[k]), reverse=True):
         if k not in author.keys():
             author[k] = len(json_data[k])
