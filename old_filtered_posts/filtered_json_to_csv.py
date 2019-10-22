@@ -10,8 +10,8 @@ with open("posts.txt") as f:
 for subreddit in posts_json:
     for post in posts_json[subreddit]: #Iterate through all the reddits, within them find an array
         test_string = post['title'] + '' + post['selftext']
-        # print(post)
-        if 'post_hint' in post.keys() and post['post_hint'] == 'image' and any(item in test_string for item in keywords):
+        # print(post)  and any(item in test_string for item in keywords)
+        if 'post_hint' in post.keys() and post['post_hint'] == 'image':
             try:
                 all_posts = all_posts.append({
                     "author": post["author"],
