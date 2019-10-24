@@ -40,12 +40,13 @@ def post_comment_ids(post_id):
 def get_comment_data(post_id,comment_ids):
     search_comment_endpoint = "https://api.pushshift.io/reddit/search/comment/"
 
-    random_ids = random.sample(comment_ids, 20)
+    #random_ids = random.sample(comment_ids, 20)
     
-    csv_ids = ",".join(random_ids)
+    csv_ids = ",".join(comment_ids[850:])
        
     params = {
         "ids": csv_ids,
+        "size": 500
     }
     request = requests.get(url=search_comment_endpoint, params=params)
 
