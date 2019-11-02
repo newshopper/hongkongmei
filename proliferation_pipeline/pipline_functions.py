@@ -29,6 +29,31 @@ def post_comment_ids(post_id):
 
     return response['data'] 
 
+################################################################################################
+# Simple function to get the post information off the post_id
+#
+# 
+###############################################################################################
+def get_post_data(post_id):
+    search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"    
+
+    params = {
+        'ids': post_id
+    }
+
+    request = requests.get(url=search_post_endpoint, params=params)
+
+    if request.status_code == 200:
+        response = request.json()
+        
+    else:
+        print("something went wrong")
+        print("Tried to pull post data of: {}".format(post_id))
+        print(request.status_code)
+
+
+    return response['data']
+
 
 
 ##################################################################################################

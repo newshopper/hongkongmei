@@ -1,4 +1,6 @@
-from pipline_functions import post_comment_ids,get_comment_data,get_user_activity
+from pipline_functions import post_comment_ids,get_post_data,get_comment_data,get_user_activity
+from storage_functions import open_database,set_cursor,wipe_database,close_database
+from storage_functions import create_posts_table, create_comments_table, create_users_table
 from storage_functions import store_post,store_comment,store_user
 import pandas as pd
 import time
@@ -24,15 +26,30 @@ def main():
     #Users have a key of the user id. This is unique to each user. Users will not need foreign keys (probably)
     users = {}
 
+
+
+    conn = open_database("hongkongmei","postgres","atclassof2021")
+    cur = set_cursor(conn)
+
+    
+    wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
+
+    create_posts_table(cur,conn)
+    create_comments_table(cur,conn)
+
+
     blitzchung_seed_id = "dehdhm" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
-   
 
-    comment_ids = post_comment_ids(blitzchung_seed_id)
-    print("Number of comments: {}".format(len(comment_ids)))
-    comment_data = get_comment_data(blitzchung_seed_id, comment_ids)
-    print(comment_data)
+    post = get_post_data(blitzchung_seed_id)
+
+    #print(post)
+
+    # comment_ids = post_comment_ids(blitzchung_seed_id)
+    # print("Number of comments: {}".format(len(comment_ids)))
+    # comment_data = get_comment_data(blitzchung_seed_id, comment_ids)
+    # print(comment_data[4])
     # authors = []
     # for comment in comment_data:
     #     authors.append([comment["author"],comment["created_utc"]])
