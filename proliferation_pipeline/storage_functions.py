@@ -45,7 +45,7 @@ def create_comments_table(cur,conn):
     try:
         cur.execute("""create table comments (comment_id varchar(64) PRIMARY KEY, post_id varchar(64), 
         author varchar(64), body text, score int, created_utc numeric, retrieved_on_utc numeric, parent_id varchar(64), 
-        permalink text, sticked bool)""")
+        permalink text, stickied bool)""")
         print("create comments table")
         conn.commit() #make changes persistent
     except:
