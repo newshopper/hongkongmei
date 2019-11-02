@@ -2,12 +2,14 @@ import requests
 import json
 
 import random
+
 ##################################################################################################
 # Gets all the comment ids from a specific post
 # 
 # pass a post id such as "6uey5x" that corresponds to the reddit post you are intersted in
 # full request looks like this: "https://api.pushshift.io/reddit/submission/comment_ids/6uey5x"
 # Returns an array of comment ids that you can process with other function calls
+# Comment ids come in chronological order
 ##################################################################################################
 def post_comment_ids(post_id):
     post_comment_endpoint = "https://api.pushshift.io/reddit/submission/comment_ids/" #pushshift endpoint for querying comment_ids for a specific post
@@ -25,7 +27,7 @@ def post_comment_ids(post_id):
         print(request.status_code)
 
 
-    return response['data']
+    return response['data'] 
 
 
 
@@ -42,7 +44,7 @@ def get_comment_data(post_id,comment_ids):
 
     #random_ids = random.sample(comment_ids, 20)
     
-    csv_ids = ",".join(comment_ids[850:])
+    csv_ids = ",".join(comment_ids[1:100]) #Only calling responses for the first 100 comments for now
        
     params = {
         "ids": csv_ids,

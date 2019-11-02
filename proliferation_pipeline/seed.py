@@ -1,4 +1,5 @@
 from pipline_functions import post_comment_ids,get_comment_data,get_user_activity
+from storage_functions import store_post,store_comment,store_user
 import pandas as pd
 import time
 ## Seed posts
@@ -12,6 +13,17 @@ import time
 
 def main():
 
+    # Three dictionaries representatives of what we will likely store in our data base 
+    # In our final version, we will limit posts by whether or not they include stuff from hong kong
+
+    #Posts have a key of the post id. This is unique to each post. Inside we will store author, num_comments, etc.
+    #We can check if a post has been processed already by checking if its id exists as a key to this dictionary
+    posts = {} 
+    #Comments have a key of the comment id. This is unique to each comment. Comments will also store the post id they are related to and the user id of the user that made them
+    comments = {}
+    #Users have a key of the user id. This is unique to each user. Users will not need foreign keys (probably)
+    users = {}
+
     blitzchung_seed_id = "dehdhm" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
@@ -20,7 +32,7 @@ def main():
     comment_ids = post_comment_ids(blitzchung_seed_id)
     print("Number of comments: {}".format(len(comment_ids)))
     comment_data = get_comment_data(blitzchung_seed_id, comment_ids)
-    print(len(comment_data))
+    print(comment_data)
     # authors = []
     # for comment in comment_data:
     #     authors.append([comment["author"],comment["created_utc"]])
