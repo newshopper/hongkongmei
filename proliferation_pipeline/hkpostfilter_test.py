@@ -117,9 +117,32 @@ class StanceClassification:
         print("\nF1-measure: ", mean(f1_scores))
         return (scores)
 
+    def train_model(self):
+        additional_stop_words = ['https', 'http', 'amp', 'com', 'reddit', 'www']
+
+        model = Pipeline([("ngram", CountVectorizer(stop_words=ENGLISH_STOP_WORDS.union(additional_stop_words),
+                                                    ngram_range=(1, 3), min_df=2, max_features=1000)),
+                          ("tfidf", TfidfTransformer()),
+                          ("clf", SVC(C=1.0, gamma='scale', kernel='linear'))])
+
+        model.fit(self.train_x, self.train_y)
+
+        features_matrix = model.named_steps['ngram'].fit_transform(self.train_x,
+                                                                   self.train_y)
+        top20_best = SelectKBest(chi2, k=20)
+        top20_best.fit_transform(features_matrix, self.train_y)
+        feature_names = model.named_steps['ngram'].get_feature_names()
+
+        top20_index = [i for i, x in enumerate(top20_best.get_support()) if x]
+        print("Top 20 features : %s" % (", ".join(feature_names[i] for i in top20_index)))
+
+        return model
+
+
 def main():
     data_file1 = "comment_activity_with_tags.csv"
     data_file2 = "post_activity_with_tags.csv"
+    test_file = "sample_posts.csv"
     # scores = []
 
     nlp_model = StanceClassification()
@@ -129,12 +152,15 @@ def main():
 
     # scores1 = nlp_model.crossValidation(0)
     # print("Naive Bayes Accuracy: %.16f \n" % mean(scores1))
-    scores2 = nlp_model.crossValidation(1)
-    print("SVM Accuracy: ", mean(scores2))
+    # scores2 = nlp_model.crossValidation(1)
+    # print("SVM Accuracy: ", mean(scores2))
+
+
+
     # scores3 = nlp_model.crossValidation(2)
     # print("Ada Boost Accuracy: ", mean(scores3))
-    scores4 = nlp_model.crossValidation(3)
-    print("SGD Accuracy: ", mean(scores4))
+    # scores4 = nlp_model.crossValidation(3)
+    # print("SGD Accuracy: ", mean(scores4))
 
     # Start: This part is used for feature selection
     # for i in range(5, 14):
@@ -148,6 +174,12 @@ def main():
     # print("Best Naive Bayes Accuracy: ", res)
     # End
 
+    df = pd.read_csv(test_file, encoding = "ISO-8859-1")
+    test_data = np.asarray(df['title'].map(str) + df['text'].map(str))
+    model = nlp_model.train_model()
+    predicted = model.predict(test_data)
+    df['predict'] = predicted
+    df.to_csv("predictions.csv", index=False, encoding = "ISO-8859-1")
 
 
 if __name__ == '__main__':
