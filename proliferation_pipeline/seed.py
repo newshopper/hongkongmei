@@ -1,11 +1,20 @@
-from pipline_functions import post_comment_ids,get_post_data,get_comment_data,get_user_activity
+from pipline_functions import get_post_comment_ids,get_post_data,get_comments_data,get_user_activity
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_posts_table, create_comments_table, create_users_table
 from storage_functions import store_post,store_comment,store_user
 import pandas as pd
 import time
-## Seed posts
-# https://www.reddit.com/r/hearthstone/comments/dehdhm/blizzard_taiwan_deleted_hearthstone_grandmasters/  
+import os
+import sys
+### Seed posts
+## Three options for general seed
+# First post about blizzard suspension to gain big traction in major subreddit: https://www.reddit.com/r/hearthstone/comments/dehdhm/blizzard_taiwan_deleted_hearthstone_grandmasters/   
+# The original post that the above post is a crosspost of:  https://www.reddit.com/r/KotakuInAction/comments/degg4x/blizzard_taiwan_deleted_hearthstone_grandmasters/
+# The first time the specific twitter link appeared on reddit: https://www.reddit.com/r/HongKong/comments/degek8/hearthstone_grandmasters_winners_interview_with/
+# 
+## There are even earlier posts regarding the stream itself. Since it's not specific to the controversy, we can keep things here 
+#
+## Mei seed
 # https://www.reddit.com/r/HongKong/comments/df2rz7/it_would_be_such_a_shame_if_mei_from_overwatch/ 
 
 
@@ -13,7 +22,7 @@ import time
 
 
 
-def main():
+def main(write):
 
     # Three dictionaries representatives of what we will likely store in our data base 
     # In our final version, we will limit posts by whether or not they include stuff from hong kong
@@ -26,25 +35,39 @@ def main():
     #Users have a key of the user id. This is unique to each user. Users will not need foreign keys (probably)
     users = {}
 
-
-
-    conn = open_database("hongkongmei","postgres","atclassof2021")
+    #######################################################################################
+    # Bring in environment variables to connect to aws rds db
+    #######################################################################################
+    port = int(os.environ.get("port"))
+    username = os.environ.get("username")
+    password = os.environ.get("password")
+    endpoint = os.environ.get("endpoint")
+    dbname = os.environ.get("dbname")
+    
+    #Set database connection
+    conn = open_database(dbname, username, password, endpoint, port)
     cur = set_cursor(conn)
 
+    # if we have chosen to overwrite the database then run the following commands
+    if write == 'overwrite':
+        wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
+
+        create_posts_table(cur,conn)
+        create_comments_table(cur,conn)
+        create_users_table(cur, conn)
+
     
-    wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
 
-    create_posts_table(cur,conn)
-    create_comments_table(cur,conn)
-
-
-    blitzchung_seed_id = "dehdhm" #post id of our approximate first post about blitzchung 
+    blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
 
-    post = get_post_data(blitzchung_seed_id)
+    #post = get_post_data(blitzchung_seed_id)
+    #comment_ids = get_post_comment_ids("dehdhm")
+    #comments_data = get_comments_data("dehdhm",comment_ids)
 
-    #print(post)
+
+    
 
     # comment_ids = post_comment_ids(blitzchung_seed_id)
     # print("Number of comments: {}".format(len(comment_ids)))
@@ -88,4 +111,17 @@ def main():
     # post_activity_df.to_csv("post_activity.csv", index=False)
     # comment_activity_df.to_csv("comment_activity.csv", index=False)
 if __name__ == "__main__":
-    main()
+    try: 
+        write = sys.argv[1] 
+        if write == "overwrite" or write == "update":
+            main(write)
+        else:
+            print("Invalid argument") 
+            print("'update' to update tables 'overwrite' to wipe database and start over")
+            sys.exit()
+    except:
+        print("Missing argument after python script")
+        print("'update' to update tables 'overwrite' to wipe database and start over")
+        sys.exit()
+
+    

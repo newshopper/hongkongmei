@@ -4,9 +4,9 @@ import psycopg2
 # First set of function we set establish the database and the three relational tables
 
 
-def open_database(database, user, password):
+def open_database(dbname, user, password, endpoint, port):
     #connect to database
-    conn = psycopg2.connect(f"dbname={database} user={user} password={password}")
+    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=endpoint, port=port)
     return conn
 
 #Create a cursor to perform db actions
@@ -33,9 +33,8 @@ def close_database(conn, cursor):
 def create_posts_table(cur,conn):
     try:
         cur.execute("""CREATE TABLE posts (post_id varchar(64) PRIMARY KEY, title text, author varchar(64), 
-            created_utc numeric, score int, self_text text, url text, full_link text, is_crosspostable bool, 
-            is_original_content bool, num_crossposts smallint, num_comments smallint, post_hint text, 
-            subreddit text, subreddit_subscribers bigint);""")
+            created_utc numeric, score int, self_text text, url text, full_link text, num_crossposts smallint, 
+            num_comments int, post_hint text, retrieived_utc numeric, updated_utc numeric, subreddit varchar(64), subreddit_subscribers bigint);""") #establishes table for posts. NOTE: needs foreign key execute on author
         print("create posts table")
         conn.commit() #make changes persistent
     except:
@@ -43,17 +42,22 @@ def create_posts_table(cur,conn):
 
 def create_comments_table(cur,conn):
     try:
-        cur.execute("""create table comments (comment_id varchar(64) PRIMARY KEY, post_id varchar(64), 
-        author varchar(64), body text, score int, created_utc numeric, retrieved_on_utc numeric, parent_id varchar(64), 
-        permalink text, stickied bool)""")
+        cur.execute("""CREATE TABLE comments (comment_id varchar(64) PRIMARY KEY, post_id varchar(64), 
+        author varchar(64), body text, score int, created_utc numeric, retrieved_utc numeric, parent_id varchar(64), 
+        permalink text, subreddit varchar(64), stickied bool)""") #establishes table for comments. NOTE: needs foreign key for post_id and author
         print("create comments table")
         conn.commit() #make changes persistent
     except:
         print("something went wrong creating the comments table")
 
 def create_users_table(cur,conn):
-
-    print("create users table")
+    try:
+        cur.execute("""CREATE TABLE users (author varchar(64) PRIMARY KEY, joined_utc numeric)""") #establishes table for users
+        print("create users table")
+        conn.commit() #make changes persistent
+    except:
+        print("something went wrong creating the comments table")
+   
 
 
 # These functions are designed to check whether a post, user or comment has already been stored by our pipeline
