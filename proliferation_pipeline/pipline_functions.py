@@ -82,7 +82,29 @@ def get_post_data(post_id):
         sys.exit() #kill the program
 
     return data_dict
+
+def get_crosspost_ids(url):
+    # modify the URL to get the duplicates URL
+    dupli_url = url.replace('comments', 'duplicates')
+    # add .json to the end of dupli_url
+    dupli_url = dupli_url + '.json'
+    print(dupli_url)
+    # make a GET request for dupli_url and read the JSON data
+    request = requests.get(dupli_url)
     
+    crosspost_ids = []
+    print(request.status_code)
+    if request.status_code == 200:
+        results = request.json()
+        # read the second element of the array
+        crossposts_dict = results[1]
+        crossposts_array = crossposts_dict['data']['children']
+        for crosspost in crossposts_array:
+            crosspost_data = crosspost['data']
+            crosspost_id = crosspost_data['id']
+            crosspost_ids.append(crosspost_id)
+    
+    return crosspost_ids
 
 
 ##################################################################################################
