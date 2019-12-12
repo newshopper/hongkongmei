@@ -130,6 +130,7 @@ def proliferate(post, post_ids, author_ids, since, until):
     comment_ids = get_post_comment_ids(post['id'])
     comments = parse_comments(get_comments_data(post['id'], comment_ids), post['id'], post_ids)
     new_posts = []
+    new_authors = []
     for comment in comments:
         post_ids[comment['id']] = True
         author = comment['author']
@@ -138,12 +139,16 @@ def proliferate(post, post_ids, author_ids, since, until):
             parsed_user_posts = parse_posts(user_posts, post_ids)
             new_posts = new_posts + parsed_user_posts
             author_ids[author] = True
+            new_authors.append(author)
+        else:
+            continue
 
     # get crossposts
     crossposts = parse_posts(get_crossposts(post['full_link']), post_ids)
     new_posts = new_posts + crossposts
 
-
+    db_push(cur, conn, new_authors, new_posts, comments)
+    
     for new_post in new_posts:
         proliferate(new_post, post_ids, author_ids, since, until)
 

@@ -88,9 +88,9 @@ def create_tables(cur,conn):
 # Wrap SQL insert functions
 ###########################################################################################
 
-def db_push(cur, conn, user_dict=None, post_list=None, comment_list=None):
-    if user_dict != None: #check if method has users to store
-        store_users(cur, conn, user_dict)
+def db_push(cur, conn, user_list=None, post_list=None, comment_list=None):
+    if user_list != None: #check if method has users to store
+        store_users(cur, conn, user_list)
     if post_list != None: #check if method has posts to store
         store_posts(cur, conn, post_list) 
     if comment_list != None: #check if method has comments to store
@@ -111,12 +111,12 @@ def db_push(cur, conn, user_dict=None, post_list=None, comment_list=None):
 # e.g. (author, joined_utc, first_appeared_utc)
 ###########################################################################################
 
-def store_users(cur, conn, user_dict):  
+def store_users(cur, conn, user_list):  
     
     db_user_data = []
 
-    for key in user_dict.keys():
-        user_tuple = (key, None, user_dict[key]['first_appeared_utc']) #turn dict into tuple
+    for user in user_list:
+        user_tuple = (user, None, None) #turn dict into tuple
         db_user_data.append(user_tuple) #add tuple to list of users 
     
 
