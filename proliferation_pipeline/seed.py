@@ -1,6 +1,6 @@
-from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_activity
+from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts
 from storage_functions import open_database,set_cursor,wipe_database,close_database
-from storage_functions import create_posts_table, create_comments_table, create_users_table
+from storage_functions import create_tables
 from storage_functions import store_post,store_comment,store_user
 import pandas as pd
 import time
@@ -54,10 +54,7 @@ def main(write):
     # if we have chosen to overwrite the database then run the following commands
     if write == 'overwrite':
         wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
-
-        create_posts_table(cur,conn)
-        create_comments_table(cur,conn)
-        create_users_table(cur, conn)
+        create_tables(cur,conn)
 
     
 
@@ -66,14 +63,15 @@ def main(write):
 
 
 
-    posts_data = get_posts_data([blitzchung_seed_id,mei_seed_id])
+    #posts_data = get_posts_data([blitzchung_seed_id,mei_seed_id])
     #comment_ids = get_post_comment_ids("dehdhm")
     #comments_data = get_comments_data("dehdhm",comment_ids)
 
+    created_utc = 1570435322
+    author = "williamthebastardd"
 
-    print(posts_data)
+    user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
     
-
     # comment_ids = post_comment_ids(blitzchung_seed_id)
     # print("Number of comments: {}".format(len(comment_ids)))
     # comment_data = get_comment_data(blitzchung_seed_id, comment_ids)

@@ -39,7 +39,7 @@ def get_post_comment_ids(post_id):
 # 
 # Use https://api.pushshift.io/reddit/search/submission/ as endpoint and pass the list of ids as a parameter
 #
-# Returns a list of all the post information
+# Returns a list of all the post information 
 ###############################################################################################
 def get_posts_data(post_ids):
     print("Calling get_post_data method")
@@ -113,14 +113,7 @@ def get_posts_data(post_ids):
         #     "url": data['url']
         # }
         
-        
-    # else:
-    #     print("something went wrong")
-    #     print("Tried to pull post data of: {}".format(post_ids))
-    #     print(f'status code: {request.status_code}')
-    #     sys.exit() #kill the program
-
-    # return 1 #data_dict
+   
     
 
 
@@ -187,42 +180,50 @@ def get_comments_data(post_id,comment_ids):
 
 
 ######################################################################################
-# Get all user activity for a specific user
+# Get posts from user between a specific epoch (utc) time frame
+# Pass author, a start utc and an end utc
+# 
+# We decided to limit our time frame to 7 days, or 604800 seconds
+# Uses the submission search endpoint: "https://api.pushshift.io/reddit/search/submission/"
+# 
+# This method is used in the main script to find posts by users after interaction on a previous post
+# Returns a list of post ids 
 ######################################################################################
 
 
 
-def get_user_activity(author, created_at):
-    search_comment_endpoint = "https://api.pushshift.io/reddit/search/comment/"
+def get_user_posts(author, since, until):
     search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"
     
     
-    all_activity = []
+    all_post_data = []
 
-    params = {
-        "author": author,
-        "after": created_at,
-        "size": 25 #max of 500, but we can boost it with a loop and an update to after alla scrape.py file
-    }
+    while True:
 
-    post_request = requests.get(url=search_post_endpoint, params=params)
-    comment_request = requests.get(url=search_comment_endpoint, params=params)
+        params = {
+            "author": author,
+            "after": since,
+            "before": until,
+            "size": 500 #max of 500, but we can boost it with a loop and an update to after alla scrape.py file
+        }
 
-    if post_request.status_code == 200:
-        post_response = post_request.json()
+        request = requests.get(url=search_post_endpoint, params=params)
+    
+
+        if request.status_code == 200:
+            response = request.json()
+            all_post_data = all_post_data + response['data']
+            if len(response['data']) < 500:
+                break
+            else: 
+                since = response['data'][-1]['created_utc']
         
-    else:
-        print("something went wrong")
-        print("Tried to pull post activity from user: {}".format(author))
-        print(post_request.status_code)
-
-    if comment_request.status_code == 200:
-        comment_response = comment_request.json()
-        
-    else:
-        print("something went wrong")
-        print("Tried to pull comment activity from user: {}".format(author))
-        print(comment_request.status_code)    
+        else:
+            print("something went wrong")
+            print("Tried to pull post activity from user: {}".format(author))
+            print(f'status code: {request.status_code}')
 
 
-    return [post_response['data'], comment_response['data']]
+
+
+    return all_post_data

@@ -35,10 +35,17 @@ def close_database(conn, cursor):
     cursor.close()
     conn.close()
     
+######################################################
+# The three functions below create three tables
+# One table for posts, one for comments and one for users
+#
+# Three functions are wrapped in one main function "create_tables"
+# which adds foreign key dependancies
+######################################################
 
 def create_posts_table(cur,conn):
     try:
-        cur.execute("""CREATE TABLE posts (post_id varchar(64) PRIMARY KEY, title text, author varchar(64), 
+        cur.execute("""CREATE TABLE posts (post_id varchar(64) PRIMARY KEY, title text, author varchar(64) references users(author), 
             created_utc numeric, score int, self_text text, url text, full_link text, num_crossposts smallint, 
             num_comments int, post_hint text, retrieived_utc numeric, updated_utc numeric, subreddit varchar(64), subreddit_subscribers bigint);""") #establishes table for posts. NOTE: needs foreign key execute on author
         print("create posts table")
@@ -48,8 +55,8 @@ def create_posts_table(cur,conn):
 
 def create_comments_table(cur,conn):
     try:
-        cur.execute("""CREATE TABLE comments (comment_id varchar(64) PRIMARY KEY, post_id varchar(64), 
-        author varchar(64), body text, score int, created_utc numeric, retrieved_utc numeric, parent_id varchar(64), 
+        cur.execute("""CREATE TABLE comments (comment_id varchar(64) PRIMARY KEY, post_id varchar(64) references posts(post_id), 
+        author varchar(64) references users(author), body text, score int, created_utc numeric, retrieved_utc numeric, parent_id varchar(64), 
         permalink text, subreddit varchar(64), stickied bool)""") #establishes table for comments. NOTE: needs foreign key for post_id and author
         print("create comments table")
         conn.commit() #make changes persistent
@@ -63,7 +70,20 @@ def create_users_table(cur,conn):
         conn.commit() #make changes persistent
     except:
         print("something went wrong creating the comments table")
-   
+
+########################################################################################
+# create_tables takes a database connection and a database cursor and makes the three
+# tables to capture relevant reddit data
+########################################################################################
+def create_tables(cur,conn):
+    create_users_table(cur,conn)
+    create_posts_table(cur,conn)
+    create_comments_table(cur,conn)
+
+    conn.commit()
+
+
+
 
 
 # These functions are designed to check whether a post, user or comment has already been stored by our pipeline
