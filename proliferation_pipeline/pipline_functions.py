@@ -124,7 +124,8 @@ def get_posts_data(post_ids):
 
 def get_crosspost_ids(url):
     '''
-    Get crosspost ids from the given URL
+    # Get crosspost ids from the given URL
+    # Returns a list of post ids
     '''
     # modify the URL to get the duplicates URL
     dupli_url = url.replace('comments', 'duplicates')

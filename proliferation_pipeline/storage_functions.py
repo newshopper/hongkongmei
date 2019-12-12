@@ -1,5 +1,5 @@
 import psycopg2 #python library for interacting with postgres databases
-
+from psycopg2.extras import execute_values
 
 ########################################################################
 # To connect to the aws database, you need the proper credentials
@@ -84,20 +84,17 @@ def create_tables(cur,conn):
 
 
 
-
-
-# These functions are designed to check whether a post, user or comment has already been stored by our pipeline
-# As the network expands, We only want to store information (i.e. posts, users) that we haven't stored yet
-# We can do that by maintaining local dictionaries (declared in seed.py) with keys representing the unique id
-# of each object
+##########################################################################################
+# These three functions wrap around SQL insert functions
 #
-# If the new item coming it is new, we add it to our dictionary and store it in our relational database. If not, 
-# we ignore it and move on. We use psycopg2 library to interact with our postgres database. In each function you see
-# a db_cursor variable passed. 
+# Only store_posts and store_comments are called in the main function. store_user is a helper
+# function for the other two.
+###########################################################################################
 
 
 
-def store_user(db_cursor, user_dict):  
+
+def store_user(db_cursor, u):  
     print("store user")
 
 
