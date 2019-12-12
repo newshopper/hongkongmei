@@ -83,7 +83,11 @@ def get_post_data(post_id):
 
     return data_dict
 
+
 def get_crosspost_ids(url):
+    '''
+    Get crosspost ids from the given URL
+    '''
     # modify the URL to get the duplicates URL
     dupli_url = url.replace('comments', 'duplicates')
     # add .json to the end of dupli_url
@@ -108,19 +112,22 @@ def get_crosspost_ids(url):
 
 
 ##################################################################################################
-# Gets all comment data from a list of comment ids
-# 
-# Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
-# string and feeds it as a parameter to the pushshift api
-# 
-# Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
-# the comma-deliminated string 'ids'. 
-#
-# Note: There are some limitations with the number of comments we can access at a time. WSo, we have
-# to run a while loop to return all of them
+
 ##################################################################################################
 
 def get_comments_data(post_id,comment_ids):
+    '''
+    # Gets all comment data from a list of comment ids
+    # 
+    # Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
+    # string and feeds it as a parameter to the pushshift api
+    # 
+    # Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
+    # the comma-deliminated string 'ids'. 
+    #
+    # Note: There are some limitations with the number of comments we can access at a time. WSo, we have
+    # to run a while loop to return all of them
+    '''
     print("Calling get_comments_data method")
     
     search_comment_endpoint = "https://api.pushshift.io/reddit/search/comment/"
