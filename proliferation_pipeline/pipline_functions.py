@@ -163,7 +163,7 @@ def get_comments_data(post_id,comment_ids):
     # Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
     # the comma-deliminated string 'ids'. 
     #
-    # Note: There are some limitations with the number of comments we can access at a time. WSo, we have
+    # Note: There are some limitations with the number of comments we can access at a time. So, we have
     # to run a while loop to return all of them
     '''
     print("Calling get_comments_data method")
