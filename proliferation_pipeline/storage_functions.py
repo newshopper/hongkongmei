@@ -1,7 +1,13 @@
-import psycopg2
+import psycopg2 #python library for interacting with postgres databases
 
 
-# First set of function we set establish the database and the three relational tables
+########################################################################
+# To connect to the aws database, you need the proper credentials
+# 
+# dbname, user, password, host and port are all required
+# These variables are set in our main script, seed.py 
+#######################################################################
+
 
 
 def open_database(dbname, user, password, endpoint, port):

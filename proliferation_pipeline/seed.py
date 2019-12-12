@@ -1,4 +1,4 @@
-from pipline_functions import get_post_comment_ids,get_post_data,get_comments_data,get_user_activity
+from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_activity
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_posts_table, create_comments_table, create_users_table
 from storage_functions import store_post,store_comment,store_user
@@ -37,6 +37,9 @@ def main(write):
 
     #######################################################################################
     # Bring in environment variables to connect to aws rds db
+    #
+    # To set environment variables in windows, run the following command in command prompt:
+    # set [variable_name]=[variable_value] 
     #######################################################################################
     port = int(os.environ.get("port"))
     username = os.environ.get("username")
@@ -62,11 +65,13 @@ def main(write):
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
 
-    #post = get_post_data(blitzchung_seed_id)
+
+    posts_data = get_posts_data([blitzchung_seed_id,mei_seed_id])
     #comment_ids = get_post_comment_ids("dehdhm")
     #comments_data = get_comments_data("dehdhm",comment_ids)
 
 
+    print(posts_data)
     
 
     # comment_ids = post_comment_ids(blitzchung_seed_id)
@@ -111,17 +116,20 @@ def main(write):
     # post_activity_df.to_csv("post_activity.csv", index=False)
     # comment_activity_df.to_csv("comment_activity.csv", index=False)
 if __name__ == "__main__":
+    correct_input = False
     try: 
         write = sys.argv[1] 
         if write == "overwrite" or write == "update":
-            main(write)
+            correct_input = True
         else:
             print("Invalid argument") 
-            print("'update' to update tables 'overwrite' to wipe database and start over")
+            print("'overwrite' to wipe database and start over. 'update' to pick up where you left off.")
             sys.exit()
     except:
         print("Missing argument after python script")
-        print("'update' to update tables 'overwrite' to wipe database and start over")
+        print("'overwrite' to wipe database and start over. 'update' to pick up where you left off.")
         sys.exit()
 
+    if correct_input:
+        main(write)
     
