@@ -85,42 +85,7 @@ def get_posts_data(post_ids):
 
     return all_post_data
     
-#####################    
-# Old code from get_posts_data
-######################
 
-
-    # request = requests.get(url=search_post_endpoint, params=params)
-
-    # if request.status_code == 200:
-    #     response = request.json()
-    #     data = response['data']
-    #     print(data[0])
-        # data_dict = {
-        #     "author": data['author'],
-        #     "created_utc": data['created_utc'],
-        #     "full_link": data['full_link'],
-        #     "id": data['id'],
-        #     "num_comments": data['num_comments'],
-        #     "num_crossposts": data['num_crossposts'],
-        #     "retrieved_on": data['retrieved_on'],
-        #     "score": data['score'],
-        #     "selftext": data['selftext'],
-        #     "subreddit": data['subreddit'],
-        #     "subreddit_subscribers": data['subreddit_subscribers'],
-        #     "tite": data['title'],
-        #     "updated_utc": data['updated_utc'],
-        #     "url": data['url']
-        # }
-        
-        
-    # else:
-    #     print("something went wrong")
-    #     print("Tried to pull post data of: {}".format(post_ids))
-    #     print(f'status code: {request.status_code}')
-    #     sys.exit() #kill the program
-
-    # return 1 #data_dict
 
 def get_crosspost_ids(url):
     '''
