@@ -49,27 +49,27 @@ def get_posts_data(post_ids):
     print(f'Total posts to fetch: {len(post_ids)}')
     
 
-    returned_posts = 0
+    num_returned_posts = 0
 
     all_post_data = []
 
-    while returned_posts < len(post_ids): #loop until we have returned data for all posts
-        if len(post_ids) - returned_posts < 500: #if there is less than 500 posts left to return, return what is left to return
-            incoming_posts =  len(post_ids) - returned_posts
+    while num_returned_posts < len(post_ids): #loop until we have returned data for all posts
+        if len(post_ids) - num_returned_posts < 500: #if there is less than 500 posts left to return, return what is left to return
+            num_incoming_posts =  len(post_ids) - num_returned_posts
         else:
-            incoming_posts = 500 #else return 500 comments as we build towards returning all posts
+            num_incoming_posts = 500 #else return 500 comments as we build towards returning all posts
 
-        print(f'Fetching posts: {returned_posts} to {returned_posts + incoming_posts}')
+        print(f'Fetching posts: {num_returned_posts} to {num_returned_posts + num_incoming_posts}')
 
         
         #Isolate the specific comment ids that we are fetching now. We can only fetch a max of 500 at a time
-        fetching_posts = post_ids[returned_posts:returned_posts+incoming_posts]
+        fetching_posts = post_ids[num_returned_posts:num_returned_posts+num_incoming_posts]
         
         params = {
             'ids': fetching_posts,
             'size': 500
         }
-        returned_posts = returned_posts + incoming_posts #increment our returned comments for the while loop
+        num_returned_posts = num_returned_posts + num_incoming_posts #increment our returned comments for the while loop
 
         request = requests.get(url=search_post_endpoint, params=params)
 
@@ -149,6 +149,10 @@ def get_crosspost_ids(url):
     
     return crosspost_ids
 
+def get_crossposts(url):
+    crosspost_ids = get_crosspost_ids(url)
+    crossposts = get_posts_data(crosspost_ids)
+    return crossposts
 
 ##################################################################################################
 
@@ -156,16 +160,13 @@ def get_crosspost_ids(url):
 
 def get_comments_data(post_id,comment_ids):
     '''
-    # Gets all comment data from a list of comment ids
-    # 
-    # Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
-    # string and feeds it as a parameter to the pushshift api
-    # 
-    # Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
-    # the comma-deliminated string 'ids'. 
-    #
-    # Note: There are some limitations with the number of comments we can access at a time. So, we have
-    # to run a while loop to return all of them
+    Gets all comment data from a list of comment ids 
+    Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
+    string and feeds it as a parameter to the pushshift api 
+    Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
+    the comma-deliminated string 'ids'. 
+    Note: There are some limitations with the number of comments we can access at a time. So, we have
+    to run a while loop to return all of them
     '''
     print("Calling get_comments_data method")
     

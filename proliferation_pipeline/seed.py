@@ -1,4 +1,4 @@
-from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts
+from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_tables
 from storage_functions import store_post,store_comment,store_user
@@ -17,10 +17,22 @@ import sys
 ## Mei seed
 # https://www.reddit.com/r/HongKong/comments/df2rz7/it_would_be_such_a_shame_if_mei_from_overwatch/ 
 
+ #######################################################################################
+# Bring in environment variables to connect to aws rds db
+#
+# To set environment variables in windows, run the following command in command prompt:
+# set [variable_name]=[variable_value] 
+#######################################################################################
 
+port = int(os.environ.get("port"))
+username = os.environ.get("username")
+password = os.environ.get("password")
+endpoint = os.environ.get("endpoint")
+dbname = os.environ.get("dbname")
 
-
-
+#Set database connection
+conn = open_database(dbname, username, password, endpoint, port)
+cur = set_cursor(conn)
 
 def main(write):
 
@@ -34,22 +46,6 @@ def main(write):
     comments = {}
     #Users have a key of the user id. This is unique to each user. Users will not need foreign keys (probably)
     users = {}
-
-    #######################################################################################
-    # Bring in environment variables to connect to aws rds db
-    #
-    # To set environment variables in windows, run the following command in command prompt:
-    # set [variable_name]=[variable_value] 
-    #######################################################################################
-    port = int(os.environ.get("port"))
-    username = os.environ.get("username")
-    password = os.environ.get("password")
-    endpoint = os.environ.get("endpoint")
-    dbname = os.environ.get("dbname")
-    
-    #Set database connection
-    conn = open_database(dbname, username, password, endpoint, port)
-    cur = set_cursor(conn)
 
     # if we have chosen to overwrite the database then run the following commands
     if write == 'overwrite':
@@ -70,7 +66,8 @@ def main(write):
     created_utc = 1570435322
     author = "williamthebastardd"
 
-    user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
+    # user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
+    initialize_pipeline(blitzchung_seed_id)
     
     # comment_ids = post_comment_ids(blitzchung_seed_id)
     # print("Number of comments: {}".format(len(comment_ids)))
@@ -113,6 +110,101 @@ def main(write):
      
     # post_activity_df.to_csv("post_activity.csv", index=False)
     # comment_activity_df.to_csv("comment_activity.csv", index=False)
+
+def initialize_pipeline(seed_id):
+
+    seed_post = get_posts_data([seed_id])[0]
+    since = seed_post['created_utc']
+    until = since + 604800
+    post_ids = {}
+    authors = {}
+    
+    post_ids[seed_id] = True
+    # proliferate_posts([seed_id], post_ids, authors)
+    proliferate(seed_post, post_ids, authors, since, until)
+
+
+def proliferate(post, post_ids, author_ids, since, until):
+    post_ids[post['id']] = True
+    comment_ids = get_post_comment_ids(post['id'])
+    comments = parse_comments(get_comments_data(post['id'], comment_ids), post['id'], post_ids)
+    new_posts = []
+    for comment in comments:
+        post_ids[comment['id']] = True
+        author = comment['author']
+        if author_ids not in author_ids or author_ids[author] == False:
+            user_posts = get_user_posts(author, since, until)
+            parsed_user_posts = parse_posts(user_posts, post_ids)
+            new_posts = new_posts + parsed_user_posts
+            author_ids[author] = True
+
+    # get crossposts
+    crossposts = parse_posts(get_crossposts(post['full_link']), post_ids)
+    new_posts = new_posts + crossposts
+
+
+    for new_post in new_posts:
+        proliferate(new_post, post_ids, author_ids, since, until)
+
+def parse_comments(comments_data, post_id, post_id_dict):
+    parsed_comments = []
+    if len(comments_data) > 0:
+        for comment in comments_data:
+            post_id = comment['id']
+            if post_id in post_id_dict and post_id_dict[post_id] == True:
+                continue
+            parsed_comment = {
+                'id': comment['id'],
+                'author': comment['author'],
+                'post_id': post_id,
+                'body': comment['body'],
+                'score': comment['score'],
+                'created_utc': comment['created_utc'],
+                'retrieved_on': comment['retrieved_on'],
+                'parent_id': comment['parent_id'],
+                'stickied': comment['stickied'],
+                'subreddit': comment['subreddit'],
+                'permalink': comment['permalink']
+            }
+
+            parsed_comments.append(parsed_comment)
+    
+    return parsed_comments
+
+
+def parse_posts(all_posts_data, post_id_dict):
+    parsed_posts = []
+    if len(all_posts_data) > 0:
+        for post_data in all_posts_data:
+            post_id = post_data['id']
+            if post_id in post_id_dict['post_ids'] and post_id_dict['post_ids'][post_id]['processed'] == True:
+                continue
+            parsed_post = {
+            "author": post_data['author'],
+            "created_utc": post_data['created_utc'],
+            "full_link": post_data['full_link'],
+            "id": post_data['id'],
+            "num_comments": post_data['num_comments'],
+            "num_crossposts": post_data['num_crossposts'],
+            "retrieved_on": post_data['retrieved_on'],
+            "score": post_data['score'],
+            "selftext": post_data['selftext'],
+            "subreddit": post_data['subreddit'],
+            "subreddit_subscribers": post_data['subreddit_subscribers'],
+            "tite": post_data['title'],
+            "updated_utc": post_data['updated_utc'],
+            "url": post_data['url']
+            }
+            if 'post_hint' in post_data:
+                parsed_post['post_hint'] = post_data['post_hint']
+            else:
+                parsed_post['post_hint'] = None
+
+            parsed_posts.append(parsed_post)
+            
+    return parsed_posts
+
+
 if __name__ == "__main__":
     correct_input = False
     try: 
