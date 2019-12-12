@@ -1,7 +1,7 @@
 from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts
-from storage_functions import open_database,set_cursor,wipe_database,close_database
-from storage_functions import create_tables
-from storage_functions import store_post,store_comment,store_user
+from storage_functions import open_database,set_cursor,wipe_database,close_database #High level db methods, i.e. connect db
+from storage_functions import create_tables #Wrapper function to create three tables
+from storage_functions import db_push #Wrapper function to push reddit data to db
 import pandas as pd
 import time
 import os
@@ -61,17 +61,34 @@ def main(write):
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
+    users_to_save = {}
 
-
-    #posts_data = get_posts_data([blitzchung_seed_id,mei_seed_id])
-    #comment_ids = get_post_comment_ids("dehdhm")
-    #comments_data = get_comments_data("dehdhm",comment_ids)
+    posts_data = get_posts_data([blitzchung_seed_id])
+    comment_ids = get_post_comment_ids(blitzchung_seed_id)
+    comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
 
     created_utc = 1570435322
     author = "williamthebastardd"
 
+    users_to_save[author] = {'processed': True, 'appeared_utc': created_utc} 
+        
+
+    for comment in comments_data:
+        if comment['author'] in users: 
+            do_nothing = "do_nothing"
+        else:
+            users_to_save[comment['author']] = {'processed': True, 'first_appeared_utc': comment['created_utc']} 
+        
+    
+    
+
     user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
     
+    posts_to_save = posts_data + user_activity
+    comments_to_save = comments_data
+
+    db_push(cur, conn, users_to_save, posts_to_save, comments_to_save)
+
     # comment_ids = post_comment_ids(blitzchung_seed_id)
     # print("Number of comments: {}".format(len(comment_ids)))
     # comment_data = get_comment_data(blitzchung_seed_id, comment_ids)
