@@ -13,7 +13,7 @@ import random
 # Comment ids come in chronological order
 ##################################################################################################
 def get_post_comment_ids(post_id):
-    print("Calling get_post_comment_ids method")
+    print(f"Calling get_post_comment_ids method on post: {post_id}")
     
     post_comment_endpoint = "https://api.pushshift.io/reddit/submission/comment_ids/" #pushshift endpoint for querying comment_ids for a specific post
 
@@ -42,7 +42,7 @@ def get_post_comment_ids(post_id):
 # Returns a list of all the post information 
 ###############################################################################################
 def get_posts_data(post_ids):
-    print("Calling get_post_data method")
+    print(f"Calling get_post_data method on posts: {post_ids}")
     
     search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"    
 
@@ -96,12 +96,12 @@ def get_crosspost_ids(url):
     dupli_url = url.replace('comments', 'duplicates')
     # add .json to the end of dupli_url
     dupli_url = dupli_url + '.json'
-    print(dupli_url)
+    #print(dupli_url)
     # make a GET request for dupli_url and read the JSON data
     request = requests.get(dupli_url)
     
     crosspost_ids = []
-    print(request.status_code)
+    # print(request.status_code)
     if request.status_code == 200:
         results = request.json()
         # read the second element of the array
@@ -111,7 +111,12 @@ def get_crosspost_ids(url):
             crosspost_data = crosspost['data']
             crosspost_id = crosspost_data['id']
             crosspost_ids.append(crosspost_id)
-    
+    else:
+        print("something went wrong")
+        print(f"Tried to pull crosspost data from url: {url}")
+        print(f'status code: {request.status_code}')
+        sys.exit()  
+
     return crosspost_ids
 
 def get_crossposts(url):

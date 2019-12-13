@@ -36,16 +36,7 @@ cur = set_cursor(conn)
 
 def main(write):
 
-    # Three dictionaries representatives of what we will likely store in our data base 
-    # In our final version, we will limit posts by whether or not they include stuff from hong kong
-
-    #Posts have a key of the post id. This is unique to each post. Inside we will store author, num_comments, etc.
-    #We can check if a post has been processed already by checking if its id exists as a key to this dictionary
-    posts = {} 
-    #Comments have a key of the comment id. This is unique to each comment. Comments will also store the post id they are related to and the user id of the user that made them
-    comments = {}
-    #Users have a key of the user id. This is unique to each user. Users will not need foreign keys (probably)
-    users = {}
+ 
 
     # if we have chosen to overwrite the database then run the following commands
     if write == 'overwrite':
@@ -57,71 +48,32 @@ def main(write):
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
-    users_to_save = {}
-
-    posts_data = get_posts_data([blitzchung_seed_id])
-    comment_ids = get_post_comment_ids(blitzchung_seed_id)
-    comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
-
-    created_utc = 1570435322
-    author = "williamthebastardd"
-
-
-    # user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
-    initialize_pipeline(blitzchung_seed_id)
-    #user_activity = get_user_posts(author, created_utc, created_utc+604800) #604800 is the number of seconds in one week. We give ourselves a one week window
-    # comment_ids = post_comment_ids(blitzchung_seed_id)
-    # print("Number of comments: {}".format(len(comment_ids)))
-    # comment_data = get_comment_data(blitzchung_seed_id, comment_ids)
-    # print(comment_data[4])
-    # authors = []
-    # for comment in comment_data:
-    #     authors.append([comment["author"],comment["created_utc"]])
     
-    # post_activity_df = pd.DataFrame(columns=["type","author","title","text","id","created_utc","link"])
-    # comment_activity_df = pd.DataFrame(columns=["type", "author","body","id","created_utc","link"])
-    # for author in authors:
-    #     time.sleep(10)
-    #     print(author)
-    #     activity = get_user_activity(author[0],author[1]) #return a list of all the user activity first element is post activity, second element is comment activity
-    #     post_activity = activity[0]
-    #     comment_activity = activity[1]
-        
-    #     for post in post_activity:
-    #         post_activity_df = post_activity_df.append({
-    #             "type": "post",
-    #             "author": post["author"],
-    #             "title": post["title"],
-    #             "text": post["selftext"],
-    #             "id": post["id"],
-    #             "created_utc": post["created_utc"],
-    #             "link": post["full_link"],
-    #         }, ignore_index=True)
-       
-    #     for comment in comment_activity:
-            
-    #         comment_activity_df = comment_activity_df.append({
-    #             "type": "comment",
-    #             "author": comment["author"],
-    #             "body": comment["body"],
-    #             "id": comment["id"],
-    #             "created_utc": comment["created_utc"],
-    #             "link": "reddit.com" + comment["permalink"],
-    #         }, ignore_index=True)
-     
-    # post_activity_df.to_csv("post_activity.csv", index=False)
-    # comment_activity_df.to_csv("comment_activity.csv", index=False)
 
+    # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
+    # comment_ids = get_post_comment_ids(blitzchung_seed_id)
+    # comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
+    # #posts_data = map(parse_post, posts_data)
+
+   
+    # created_utc = 1570435322
+    # author = "williamthebastardd"
+
+
+    initialize_pipeline(blitzchung_seed_id)
+    
 def initialize_pipeline(seed_id):
-
+    print("Initializing pipeline ... feeding in seed post")
     seed_post = get_posts_data([seed_id])[0]
+    
     since = seed_post['created_utc']
     until = since + 604800
     post_ids = {}
     authors = {}
     
     post_ids[seed_id] = True
-    # proliferate_posts([seed_id], post_ids, authors)
+    
+    
     proliferate(seed_post, post_ids, authors, since, until)
 
 
@@ -134,7 +86,8 @@ def proliferate(post, post_ids, author_ids, since, until):
     for comment in comments:
         post_ids[comment['id']] = True
         author = comment['author']
-        if author_ids not in author_ids or author_ids[author] == False:
+       
+        if author not in author_ids or author_ids[author] == False:
             user_posts = get_user_posts(author, since, until)
             parsed_user_posts = parse_posts(user_posts, post_ids)
             new_posts = new_posts + parsed_user_posts
@@ -154,23 +107,26 @@ def proliferate(post, post_ids, author_ids, since, until):
 
 def parse_comments(comments_data, post_id, post_id_dict):
     parsed_comments = []
-    if len(comments_data) > 0:
+    if post_id in post_id_dict and post_id_dict[post_id] == True: #Check if we've already handled the post that these comments are coming from 
+        nothing = "do nothing"
+    elif len(comments_data) > 0: #If we haven't handled that post, let's check that there are comments to handle
         for comment in comments_data:
-            post_id = comment['id']
-            if post_id in post_id_dict and post_id_dict[post_id] == True:
+            
+            comment_id = comment['id']
+            if comment_id in post_id_dict and post_id_dict[comment_id] == True:
                 continue
             parsed_comment = {
-                'id': comment['id'],
-                'author': comment['author'],
+                'id': key_or_nah(comment, "id"),
+                'author': key_or_nah(comment, "author"),
                 'post_id': post_id,
-                'body': comment['body'],
-                'score': comment['score'],
-                'created_utc': comment['created_utc'],
-                'retrieved_on': comment['retrieved_on'],
-                'parent_id': comment['parent_id'],
-                'stickied': comment['stickied'],
-                'subreddit': comment['subreddit'],
-                'permalink': comment['permalink']
+                'body': key_or_nah(comment, "body"),
+                'score': key_or_nah(comment, "score"),
+                'created_utc': key_or_nah(comment, "created_utc"),
+                'retrieved_on': key_or_nah(comment, "retreived_on"),
+                'parent_id': key_or_nah(comment, "parent_id"),
+                'stickied': key_or_nah(comment, "stickied"),
+                'subreddit': key_or_nah(comment, "subreddit"),
+                'permalink': key_or_nah(comment, "permalink")
             }
 
             parsed_comments.append(parsed_comment)
@@ -183,33 +139,38 @@ def parse_posts(all_posts_data, post_id_dict):
     if len(all_posts_data) > 0:
         for post_data in all_posts_data:
             post_id = post_data['id']
-            if post_id in post_id_dict['post_ids'] and post_id_dict['post_ids'][post_id]['processed'] == True:
+            if post_id in post_id_dict and post_id_dict[post_id] == True:
                 continue
+   
             parsed_post = {
-            "author": post_data['author'],
-            "created_utc": post_data['created_utc'],
-            "full_link": post_data['full_link'],
-            "id": post_data['id'],
-            "num_comments": post_data['num_comments'],
-            "num_crossposts": post_data['num_crossposts'],
-            "retrieved_on": post_data['retrieved_on'],
-            "score": post_data['score'],
-            "selftext": post_data['selftext'],
-            "subreddit": post_data['subreddit'],
-            "subreddit_subscribers": post_data['subreddit_subscribers'],
-            "tite": post_data['title'],
-            "updated_utc": post_data['updated_utc'],
-            "url": post_data['url']
+            "author": key_or_nah(post_data, "author"),
+            "created_utc": key_or_nah(post_data, "created_utc"),
+            "full_link": key_or_nah(post_data, "full_link"),
+            "id": key_or_nah(post_data, "id"),
+            "num_comments": key_or_nah(post_data, "num_comments"),
+            "num_crossposts": key_or_nah(post_data, "num_crossposts"),
+            "retrieved_on": key_or_nah(post_data, "retrieved_on"),
+            "score": key_or_nah(post_data, "score"),
+            "selftext": key_or_nah(post_data, "selftext"),
+            "subreddit": key_or_nah(post_data, "subreddit"),
+            "post_hint": key_or_nah(post_data, "post_hint"),
+            "subreddit_subscribers": key_or_nah(post_data, "subreddit_subscribers"),
+            "title": key_or_nah(post_data, "title"),
+            "updated_utc": key_or_nah(post_data, "updated_utc"),
+            "url": key_or_nah(post_data, "url")
             }
-            if 'post_hint' in post_data:
-                parsed_post['post_hint'] = post_data['post_hint']
-            else:
-                parsed_post['post_hint'] = None
+            
 
             parsed_posts.append(parsed_post)
             
     return parsed_posts
 
+
+def key_or_nah(dictionary, key): #checks to see if a key exists in a dictionary. If it does, return its pair value. If not, return nothing
+    if key in dictionary:
+        return dictionary[key]
+    else:
+        return None
 
 if __name__ == "__main__":
     correct_input = False
