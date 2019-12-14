@@ -20,6 +20,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import SGDClassifier
+import pickle
 
 class StanceClassification:
     def __init__(self):
@@ -142,7 +143,6 @@ class StanceClassification:
 def main():
     data_file1 = "comment_activity_with_tags.csv"
     data_file2 = "post_activity_with_tags.csv"
-    test_file = "sample_posts.csv"
     # scores = []
 
     nlp_model = StanceClassification()
@@ -173,10 +173,19 @@ def main():
     # res = max(scores, key=itemgetter(0))
     # print("Best Naive Bayes Accuracy: ", res)
     # End
+    model = nlp_model.train_model()
+    pickle.dump(model, open('model', 'wb'))
 
+    
+
+
+def predict():
+    print('predicting for the given test file')
+    # read model from file
+    model = pickle.load(open('model', 'rb'))
+    test_file = "sample_posts.csv"
     df = pd.read_csv(test_file, encoding = "ISO-8859-1")
     test_data = np.asarray(df['title'].map(str) + df['text'].map(str))
-    model = nlp_model.train_model()
     predicted = model.predict(test_data)
     df['predict'] = predicted
     df.to_csv("predictions.csv", index=False, encoding = "ISO-8859-1")
@@ -184,3 +193,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    predict()
