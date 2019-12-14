@@ -2,6 +2,21 @@ import requests
 import json
 import sys
 import random
+import os
+import praw
+
+##################################################################################################
+# Gets Reddit credentials from environment variables
+reddit_username = os.environ.get('reddit_username')
+reddit_pass = os.environ.get('reddit_password')
+reddit_client_id = os.environ.get('reddit_client_id')
+reddit_client_secret = os.environ.get('reddit_client_secret')
+reddit_user_agent = os.environ.get('reddit_user_agent')
+
+reddit = praw.Reddit(client_id=reddit_client_id,
+                     client_secret=reddit_client_secret, password=reddit_pass,
+                     user_agent=reddit_user_agent, username=reddit_username)
+##################################################################################################
 
 ##################################################################################################
 # Gets all the comment ids from a specific post
@@ -119,9 +134,30 @@ def get_crosspost_ids(url):
 
     return crosspost_ids
 
-def get_crossposts(url):
-    crosspost_ids = get_crosspost_ids(url)
-    crossposts = get_posts_data(crosspost_ids)
+# def get_crossposts(url):
+#     crosspost_ids = get_crosspost_ids(url)
+#     crossposts = get_posts_data(crosspost_ids)
+#     return crossposts
+
+def get_crossposts(post_id):
+    submission = reddit.submission(id=post_id)
+    crossposts = []
+    for duplicate in submission.duplicates():
+        parsed_post = {
+            "author": duplicate.author,
+            "created_utc": duplicate.created_utc,
+            "id": duplicate.id,
+            "num_comments": duplicate.num_comments,
+            "num_crossposts": duplicate.num_crossposts,
+            "score": duplicate.score,
+            "selftext": duplicate.selftext,
+            "subreddit": duplicate.subreddit,
+            "post_hint": duplicate.post_hint,
+            "subreddit_subscribers": duplicate.subreddit_subscribers,
+            "title": duplicate.title,
+            "url": duplicate.url
+            }
+        crossposts.append(parsed_post)
     return crossposts
 
 ##################################################################################################
