@@ -1,4 +1,4 @@
-from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts
+from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts,parse_posts,parse_comments
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_tables #Wrapper function to create three tables
 from storage_functions import db_push #Wrapper function to push reddit data to db
@@ -49,17 +49,6 @@ def main(write):
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
     
-    # test = get_crossposts("df2rz7")
-    
-    # for item in test:
-    #     print(item['author'])
-    #     print(item['subreddit'])
-    #     print(item['title'])
-    #     print("")
-
-    crossposts = get_crossposts("https://www.reddit.com/r/HongKong/comments/df2rz7/it_would_be_such_a_shame_if_mei_from_overwatch/")
-
-    print(crossposts)
     # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
     # comment_ids = get_post_comment_ids(blitzchung_seed_id)
     # comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
@@ -70,21 +59,25 @@ def main(write):
     # author = "williamthebastardd"
 
 
-    #initialize_pipeline(blitzchung_seed_id)
+    initialize_pipeline(blitzchung_seed_id)
     
 def initialize_pipeline(seed_id):
     print("Initializing pipeline ... feeding in seed post")
-    seed_post = get_posts_data([seed_id])[0]
     
-    since = seed_post['created_utc']
-    until = since + 604800
-    post_ids = {}
-    authors = {}
+    post_ids = {} #establish dictionary to track processed posts
+    authors_ids = {} #establish dictionary to track new authors
     
-    post_ids[seed_id] = True
+    seed_post = get_posts_data([seed_id])[0] #Call data on first post
+    post_ids[seed_id] = True #Set seed post_id as being processed 
+
+    #Create time window to track user interaction
+    since = seed_post['created_utc'] 
+    until = since + 604800 #One week (in seconds) after seed post was posted
     
+    db_push(cur, conn, new_authors, new_posts, comments) 
     
-    proliferate(seed_post, post_ids, authors, since, until)
+ 
+    #proliferate(seed_post, post_ids, authors, since, until)
 
 
 def proliferate(post, post_ids, author_ids, since, until):
@@ -107,13 +100,15 @@ def proliferate(post, post_ids, author_ids, since, until):
             continue
 
     # get crossposts
-    crossposts = parse_posts(get_crossposts(post['full_link']), post_ids)
-    new_posts = new_posts + crossposts
+    post_url = post['full_link']
+    crossposts = get_crossposts(post_url)
+    parsed_crossposts = parse_posts(crossposts, post_ids)
+    new_posts = new_posts + parsed_crossposts
 
-    db_push(cur, conn, new_authors, new_posts, comments)
+    #db_push(cur, conn, new_authors, new_posts, comments)
     
-    for new_post in new_posts:
-        proliferate(new_post, post_ids, author_ids, since, until)
+    # for new_post in new_posts:
+    #     proliferate(new_post, post_ids, author_ids, since, until)
 
 
 
