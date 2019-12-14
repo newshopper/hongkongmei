@@ -113,9 +113,17 @@ def db_push(cur, conn, user_list=None, post_list=None, comment_list=None):
 
 def store_users(cur, conn, user_list):  
     
+   
+
     db_user_data = []
 
     for user in user_list:
+
+        try:
+            user = str(user)
+        except:
+            user = user['author']
+
         user_tuple = (user, None, None) #turn dict into tuple
         db_user_data.append(user_tuple) #add tuple to list of users 
     

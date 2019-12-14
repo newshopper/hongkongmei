@@ -38,6 +38,7 @@ cur = set_cursor(conn)
 
 def main(write):
     # if we have chosen to overwrite the database then run the following commands
+    
     if write == 'overwrite':
         wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
         create_tables(cur,conn)
@@ -45,7 +46,7 @@ def main(write):
     
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
-
+    print(get_crossposts_praw("dej74n")[0]['author'])
     
     # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
     # comment_ids = get_post_comment_ids(blitzchung_seed_id)

@@ -140,23 +140,28 @@ def get_crossposts_praw(post_id):
     '''
     submission = reddit.submission(id=post_id)
     crossposts = []
-    for duplicate in submission.duplicates():
+    try:
+        for duplicate in submission.duplicates():
         
-        parsed_post = {
-            "author": duplicate.author,
-            "created_utc": duplicate.created_utc,
-            "id": duplicate.id,
-            "num_comments": duplicate.num_comments,
-            "num_crossposts": duplicate.num_crossposts,
-            "score": duplicate.score,
-            "selftext": duplicate.selftext,
-            "subreddit": duplicate.subreddit,
-            "post_hint": duplicate.post_hint,
-            "subreddit_subscribers": duplicate.subreddit_subscribers,
-            "title": duplicate.title,
-            "url": duplicate.url
-            }
-        crossposts.append(parsed_post)
+            parsed_post = {
+                "author": duplicate.author,
+                "created_utc": duplicate.created_utc,
+                "id": duplicate.id,
+                "num_comments": duplicate.num_comments,
+                "num_crossposts": duplicate.num_crossposts,
+                "score": duplicate.score,
+                "selftext": duplicate.selftext,
+                "subreddit": duplicate.subreddit,
+                "post_hint": duplicate.post_hint,
+                "subreddit_subscribers": duplicate.subreddit_subscribers,
+                "title": duplicate.title,
+                "url": duplicate.url
+                }
+            crossposts.append(parsed_post)
+    except:
+        print(f"Error getting crossposts of post {post_id}")
+        print("Moving on")
+  
     return crossposts
 
 ##################################################################################################
@@ -179,14 +184,19 @@ def get_post_comment_ids(post_id):
 
     if request.status_code == 200:
         response = request.json()
-         
+        data = response['data']
+    elif request.status_code == 429:
+        print("Rate limit exceeded. Sleeping for 5 sec")
+        time.sleep(5)
+        data = get_post_comment_ids(post_id)
+        
     else:
         print("something went wrong")
         print("Tried to pull comment ids of: {}".format(post_id))
         print(f'status code: {request.status_code}')
         sys.exit()
 
-    return response['data']
+    return data
 
 
 ##################################################################################################
@@ -245,6 +255,10 @@ def get_comments_data(post_id,comment_ids):
         if request.status_code == 200:
             response = request.json()
             all_comment_data = all_comment_data + response['data']
+        elif request.status_code == 429:
+            print("Rate limit exceeded. Sleeping for 10 sec")
+            time.sleep(10)
+            all_comment_data = get_comments_data(post_id, comment_id)
         
         else:
             print("something went wrong")
@@ -310,8 +324,8 @@ def get_user_posts(author, since, until):
             else: 
                 since = response['data'][-1]['created_utc']  
         elif request.status_code == 429:
-            print("Rate limit exceeded. Sleeping for 30 sec")
-            time.sleep(30)
+            print("Rate limit exceeded. Sleeping for 10 sec")
+            time.sleep(10)
             all_post_data = get_user_posts(author, since, until)
         else:
             print("something went wrong")
