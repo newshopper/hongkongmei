@@ -4,6 +4,7 @@ import sys
 import random
 import os
 import praw
+import time
 
 ##################################################################################################
 # Gets Reddit credentials from environment variables
@@ -20,35 +21,7 @@ reddit = praw.Reddit(client_id=reddit_client_id,
 
 ##################################################################################################
 
-##################################################################################################
-# Gets all the comment ids from a specific post
-# 
-# pass a post id such as "6uey5x" that corresponds to the reddit post you are intersted in
-#
-# full request looks like this: "https://api.pushshift.io/reddit/submission/comment_ids/6uey5x"
-# Returns an array of comment ids that you can process with other function calls
-# Comment ids come in chronological order
-##################################################################################################
-def get_post_comment_ids(post_id):
-    print(f"Calling get_post_comment_ids method on post: {post_id}")
-    
-    post_comment_endpoint = "https://api.pushshift.io/reddit/submission/comment_ids/" #pushshift endpoint for querying comment_ids for a specific post
-
-    full_url = post_comment_endpoint + post_id #adds post id to the url string
-
-    request = requests.get(url=full_url)
-
-    if request.status_code == 200:
-        response = request.json()
-         
-    else:
-        print("something went wrong")
-        print("Tried to pull comment ids of: {}".format(post_id))
-        print(f'status code: {request.status_code}')
-        sys.exit()
-
-    return response['data']
-    
+   
 
 ################################################################################################
 # Get post data using list of post id strings
@@ -187,6 +160,36 @@ def get_crossposts_praw(post_id):
     return crossposts
 
 ##################################################################################################
+# Gets all the comment ids from a specific post
+# 
+# pass a post id such as "6uey5x" that corresponds to the reddit post you are intersted in
+#
+# full request looks like this: "https://api.pushshift.io/reddit/submission/comment_ids/6uey5x"
+# Returns an array of comment ids that you can process with other function calls
+# Comment ids come in chronological order
+##################################################################################################
+def get_post_comment_ids(post_id):
+    print(f"Calling get_post_comment_ids method on post: {post_id}")
+    
+    post_comment_endpoint = "https://api.pushshift.io/reddit/submission/comment_ids/" #pushshift endpoint for querying comment_ids for a specific post
+
+    full_url = post_comment_endpoint + post_id #adds post id to the url string
+
+    request = requests.get(url=full_url)
+
+    if request.status_code == 200:
+        response = request.json()
+         
+    else:
+        print("something went wrong")
+        print("Tried to pull comment ids of: {}".format(post_id))
+        print(f'status code: {request.status_code}')
+        sys.exit()
+
+    return response['data']
+
+
+##################################################################################################
 # Gets all comment data from a list of comment ids 
 # 
 # Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
@@ -254,6 +257,15 @@ def get_comments_data(post_id,comment_ids):
         returned_comments = returned_comments + incoming_comments #increment our returned comments for the while loop
     return all_comment_data # response['data']
 
+###########################################################################################
+# Wrapped get commend ids and get comment data into single wrapper to return comment data
+# off of a post id
+###########################################################################################
+def get_comments(post_id):
+    comment_ids = get_post_comment_ids(post_id) #an list of comment ids
+    comment_data = get_comments_data(post_id, comment_ids)
+    return comment_data
+
 
 ######################################################################################
 # Get posts from user between a specific epoch (utc) time frame
@@ -279,6 +291,7 @@ def get_user_posts(author, since, until):
     search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"
     all_post_data = []
 
+    print(author)
     while True:
 
         params = {
@@ -296,11 +309,15 @@ def get_user_posts(author, since, until):
                 break
             else: 
                 since = response['data'][-1]['created_utc']  
+        elif request.status_code == 429:
+            print("Rate limit exceeded. Sleeping for 30 sec")
+            time.sleep(30)
+            all_post_data = get_user_posts(author, since, until)
         else:
             print("something went wrong")
             print("Tried to pull post activity from user: {}".format(author))
             print(f'status code: {request.status_code}')
-
+    print(len(all_post_data))
     return all_post_data
 
 
@@ -322,7 +339,7 @@ def parse_comments(comments_data, post_id, post_id_dict):
                 'body': key_or_nah(comment, "body"),
                 'score': key_or_nah(comment, "score"),
                 'created_utc': key_or_nah(comment, "created_utc"),
-                'retrieved_on': key_or_nah(comment, "retreived_on"),
+                'retrieved_on': key_or_nah(comment, "retrieved_on"),
                 'parent_id': key_or_nah(comment, "parent_id"),
                 'stickied': key_or_nah(comment, "stickied"),
                 'subreddit': key_or_nah(comment, "subreddit"),
@@ -336,6 +353,7 @@ def parse_comments(comments_data, post_id, post_id_dict):
 
 def parse_posts(all_posts_data, post_id_dict):
     parsed_posts = []
+    
     if len(all_posts_data) > 0:
         for post_data in all_posts_data:
             post_id = post_data['id']

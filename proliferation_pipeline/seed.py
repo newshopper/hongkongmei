@@ -1,4 +1,4 @@
-from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts,parse_posts,parse_comments
+from pipline_functions import get_posts_data,get_comments,get_user_posts,get_crosspost_ids,get_crossposts,get_crossposts_praw,parse_posts,parse_comments
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_tables #Wrapper function to create three tables
 from storage_functions import db_push #Wrapper function to push reddit data to db
@@ -34,7 +34,7 @@ dbname = os.environ.get("dbname")
 conn = open_database(dbname, username, password, endpoint, port)
 cur = set_cursor(conn)
 
-post_queue = []
+
 
 def main(write):
     # if we have chosen to overwrite the database then run the following commands
@@ -63,56 +63,72 @@ def initialize_pipeline(seed_id):
     print("Initializing pipeline ... feeding in seed post")
     
     post_ids = {} #establish dictionary to track processed posts
-    authors_ids = {} #establish dictionary to track new authors
-    
+    author_ids = {} #establish dictionary to track new authors  
+    post_queue = [] #queue of posts to process
     seed_post = get_posts_data([seed_id])[0] #Call data on first post
-    post_ids[seed_id] = True #Set seed post_id as being processed 
+    parsed_seed_post = parse_posts([seed_post], post_ids)[0]
 
     #Create time window to track user interaction
-    since = seed_post['created_utc'] 
-    until = since + 604800 #One week (in seconds) after seed post was posted
+    since = parsed_seed_post['created_utc'] 
+    until = since + 172800 #604800 #One week (in seconds) after seed post was posted
     
     # db_push(cur, conn, new_authors, new_posts, comments) 
-    global post_queue
+    
     post_queue.append(seed_post)
-    proliferate(post_queue[0], post_ids, authors, since, until)
+    
+    
+    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
 
 
-def proliferate(post, post_ids, author_ids, since, until):
-    post_ids[post['id']] = True
-    comment_ids = get_post_comment_ids(post['id'])
-    comments = parse_comments(get_comments_data(post['id'], comment_ids), post['id'], post_ids)
+def proliferate(post, post_queue, post_ids, author_ids, since, until):
+    
+    
+    #tabulate new reddit info coming in
     new_posts = []
     new_authors = []
-    for comment in comments:
-        post_ids[comment['id']] = True
-        author = comment['author']
-       
-        if author not in author_ids or author_ids[author] == False:
-            user_posts = get_user_posts(author, since, until)
-            parsed_user_posts = parse_posts(user_posts, post_ids)
-            new_posts = new_posts + parsed_user_posts
-            author_ids[author] = True
-            new_authors.append(author)
-        else:
-            continue
+
+    post_author = post['author']
+    if post_author not in author_ids: #Check if we've processed the author of the post
+        post_author_posts = get_user_posts(post_author, since, until)
+        parsed_post_author_posts = parse_posts(post_author_posts, post_ids)
+        new_authors = new_authors + [post_author] 
+        new_posts = new_posts + parsed_post_author_posts
+        author_ids[post_author] = True #Indicate that we've pulled their activity
+    
+    comments = get_comments(post['id']) #get all comment data from post
+    parsed_comments = parse_comments(comments, post['id'], post_ids) #parse returns to remove unecessary data
+    
+    for parsed_comment in parsed_comments:
+        post_ids[parsed_comment['id']] = True #add the comment id so we don't reiterate over it
+        parsed_comment_author = parsed_comment['author']
+        if parsed_comment_author not in author_ids:
+            author_posts = get_user_posts(parsed_comment_author, since, until) #get user activity from this new (previously unseen) user
+            parsed_author_posts = parse_posts(author_posts, post_ids)
+            new_authors = new_authors + [parsed_comment_author] 
+            new_posts = new_posts + parsed_author_posts
+            author_ids[parsed_comment_author] = True
+    
+
+    db_push(cur, conn, new_authors, [post], parsed_comments) #push the post, it's comments and all participating authors to the db
+
+
+    post_ids[post['id']] = True #All comments, crossposts and associated user data has been processed
 
     # get crossposts
-    post_url = post['full_link']
-    crossposts = get_crossposts(post_url)
+    crossposts = get_crossposts_praw(post['id'])
     parsed_crossposts = parse_posts(crossposts, post_ids)
+    
     new_posts = new_posts + parsed_crossposts
 
-    # add new posts to the queue
-    global post_queue
+    # # add new posts to the queue
+   
     if len(post_queue) > 0:
         post_queue.pop(0)
     post_queue = post_queue + new_posts
-    db_push(cur, conn, new_authors, new_posts, comments)
-    proliferate(post_queue[0], post_ids, author_ids, since, until)
+  
+    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
     
-    # for new_post in new_posts:
-    #     proliferate(new_post, post_ids, author_ids, since, until)
+   
 
 
 
