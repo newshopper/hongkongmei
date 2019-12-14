@@ -103,11 +103,16 @@ def get_posts_data(post_ids):
     return all_post_data
     
 
-
+################################################################################################
+# Get crosspost ids from the given URL. The URL passed is the full_link passed from the
+# parent post.
+#
+# Returns a list of post ids
+################################################################################################
 def get_crosspost_ids(url):
     '''
-    # Get crosspost ids from the given URL
-    # Returns a list of post ids
+    Get crosspost ids from the given URL
+    Returns a list of post ids
     '''
     # modify the URL to get the duplicates URL
     dupli_url = url.replace('comments', 'duplicates')
@@ -141,12 +146,25 @@ def get_crosspost_ids(url):
 
     return crosspost_ids
 
+################################################################################################
+
+################################################################################################
 def get_crossposts(url):
+    '''
+    Get crossposts from the given URL. This method gets all the crosspost ids first and then calls
+    get_posts_data() to retrieve the content of the posts
+    '''
     crosspost_ids = get_crosspost_ids(url)
     crossposts = get_posts_data(crosspost_ids)
     return crossposts
 
+################################################################################################
+
+################################################################################################
 def get_crossposts_praw(post_id):
+    '''
+    Get crossposts using the praw library. It takes the original post_id as input.
+    '''
     submission = reddit.submission(id=post_id)
     crossposts = []
     for duplicate in submission.duplicates():
@@ -169,7 +187,16 @@ def get_crossposts_praw(post_id):
     return crossposts
 
 ##################################################################################################
-
+# Gets all comment data from a list of comment ids 
+# 
+# Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
+# string and feeds it as a parameter to the pushshift api 
+# 
+# Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
+# the comma-deliminated string 'ids'. 
+# 
+# Note: There are some limitations with the number of comments we can access at a time. So, we have
+# to run a while loop to return all of them
 ##################################################################################################
 
 def get_comments_data(post_id,comment_ids):
@@ -228,8 +255,6 @@ def get_comments_data(post_id,comment_ids):
     return all_comment_data # response['data']
 
 
-
-
 ######################################################################################
 # Get posts from user between a specific epoch (utc) time frame
 # Pass author, a start utc and an end utc
@@ -240,13 +265,18 @@ def get_comments_data(post_id,comment_ids):
 # This method is used in the main script to find posts by users after interaction on a previous post
 # Returns a list of post ids 
 ######################################################################################
-
-
-
 def get_user_posts(author, since, until):
+    '''
+    Get posts from user between a specific epoch (utc) time frame
+    Pass author, a start utc and an end utc
+
+    We decided to limit our time frame to 7 days, or 604800 seconds
+    Uses the submission search endpoint: "https://api.pushshift.io/reddit/search/submission/"
+
+    This method is used in the main script to find posts by users after interaction on a previous post
+    Returns a list of post ids 
+    '''
     search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"
-    
-    
     all_post_data = []
 
     while True:
@@ -259,23 +289,17 @@ def get_user_posts(author, since, until):
         }
 
         request = requests.get(url=search_post_endpoint, params=params)
-    
-
         if request.status_code == 200:
             response = request.json()
             all_post_data = all_post_data + response['data']
             if len(response['data']) < 500:
                 break
             else: 
-                since = response['data'][-1]['created_utc']
-        
+                since = response['data'][-1]['created_utc']  
         else:
             print("something went wrong")
             print("Tried to pull post activity from user: {}".format(author))
             print(f'status code: {request.status_code}')
-
-
-
 
     return all_post_data
 

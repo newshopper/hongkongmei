@@ -1,4 +1,4 @@
-from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts
+from pipline_functions import get_post_comment_ids,get_posts_data,get_comments_data,get_user_posts,get_crosspost_ids,get_crossposts, parse_posts, parse_comments
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_tables #Wrapper function to create three tables
 from storage_functions import db_push #Wrapper function to push reddit data to db
@@ -34,17 +34,15 @@ dbname = os.environ.get("dbname")
 conn = open_database(dbname, username, password, endpoint, port)
 cur = set_cursor(conn)
 
+post_queue = []
+
 def main(write):
-
- 
-
     # if we have chosen to overwrite the database then run the following commands
     if write == 'overwrite':
         wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
         create_tables(cur,conn)
 
     
-
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
@@ -83,8 +81,9 @@ def initialize_pipeline(seed_id):
     
     post_ids[seed_id] = True
     
-    
-    proliferate(seed_post, post_ids, authors, since, until)
+    global post_queue
+    post_queue.append(seed_post)
+    proliferate(post_queue[0], post_ids, authors, since, until)
 
 
 def proliferate(post, post_ids, author_ids, since, until):
@@ -110,10 +109,19 @@ def proliferate(post, post_ids, author_ids, since, until):
     crossposts = parse_posts(get_crossposts(post['full_link']), post_ids)
     new_posts = new_posts + crossposts
 
+    global post_queue
+    if len(post_queue) > 0:
+        # remove the first element
+        post_queue.pop(0)
+    
+    post_queue = post_queue + new_posts
+
     db_push(cur, conn, new_authors, new_posts, comments)
     
-    for new_post in new_posts:
-        proliferate(new_post, post_ids, author_ids, since, until)
+    proliferate(post_queue[0], post_ids, author_ids, since, until)
+    
+    # for new_post in new_posts:
+    #     proliferate(new_post, post_ids, author_ids, since, until)
 
 
 
