@@ -105,6 +105,8 @@ def proliferate(post, post_ids, author_ids, since, until):
 
     # add new posts to the queue
     global post_queue
+    if len(post_queue) > 0:
+        post_queue.pop(0)
     post_queue = post_queue + new_posts
     db_push(cur, conn, new_authors, new_posts, comments)
     proliferate(post_queue[0], post_ids, author_ids, since, until)
