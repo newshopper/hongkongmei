@@ -16,6 +16,8 @@ reddit_user_agent = os.environ.get('reddit_user_agent')
 reddit = praw.Reddit(client_id=reddit_client_id,
                      client_secret=reddit_client_secret, password=reddit_pass,
                      user_agent=reddit_user_agent, username=reddit_username)
+
+
 ##################################################################################################
 
 ##################################################################################################
@@ -112,8 +114,13 @@ def get_crosspost_ids(url):
     # add .json to the end of dupli_url
     dupli_url = dupli_url + '.json'
     #print(dupli_url)
+    
+    headers = {
+        "User-agent": "py_script:personal_use_scrip:v0 (by /u/beautifulalphbetsoup)"
+    }
+    
     # make a GET request for dupli_url and read the JSON data
-    request = requests.get(dupli_url)
+    request = requests.get(dupli_url, headers=headers)
     
     crosspost_ids = []
     # print(request.status_code)
@@ -134,15 +141,16 @@ def get_crosspost_ids(url):
 
     return crosspost_ids
 
-# def get_crossposts(url):
-#     crosspost_ids = get_crosspost_ids(url)
-#     crossposts = get_posts_data(crosspost_ids)
-#     return crossposts
+def get_crossposts(url):
+    crosspost_ids = get_crosspost_ids(url)
+    crossposts = get_posts_data(crosspost_ids)
+    return crossposts
 
-def get_crossposts(post_id):
+def get_crossposts_praw(post_id):
     submission = reddit.submission(id=post_id)
     crossposts = []
     for duplicate in submission.duplicates():
+        
         parsed_post = {
             "author": duplicate.author,
             "created_utc": duplicate.created_utc,
@@ -270,3 +278,72 @@ def get_user_posts(author, since, until):
 
 
     return all_post_data
+
+
+
+def parse_comments(comments_data, post_id, post_id_dict):
+    parsed_comments = []
+    if post_id in post_id_dict and post_id_dict[post_id] == True: #Check if we've already handled the post that these comments are coming from 
+        nothing = "do nothing"
+    elif len(comments_data) > 0: #If we haven't handled that post, let's check that there are comments to handle
+        for comment in comments_data:
+            
+            comment_id = comment['id']
+            if comment_id in post_id_dict and post_id_dict[comment_id] == True:
+                continue
+            parsed_comment = {
+                'id': key_or_nah(comment, "id"),
+                'author': key_or_nah(comment, "author"),
+                'post_id': post_id,
+                'body': key_or_nah(comment, "body"),
+                'score': key_or_nah(comment, "score"),
+                'created_utc': key_or_nah(comment, "created_utc"),
+                'retrieved_on': key_or_nah(comment, "retreived_on"),
+                'parent_id': key_or_nah(comment, "parent_id"),
+                'stickied': key_or_nah(comment, "stickied"),
+                'subreddit': key_or_nah(comment, "subreddit"),
+                'permalink': key_or_nah(comment, "permalink")
+            }
+
+            parsed_comments.append(parsed_comment)
+    
+    return parsed_comments
+
+
+def parse_posts(all_posts_data, post_id_dict):
+    parsed_posts = []
+    if len(all_posts_data) > 0:
+        for post_data in all_posts_data:
+            post_id = post_data['id']
+            if post_id in post_id_dict and post_id_dict[post_id] == True:
+                continue
+   
+            parsed_post = {
+            "author": key_or_nah(post_data, "author"),
+            "created_utc": key_or_nah(post_data, "created_utc"),
+            "full_link": key_or_nah(post_data, "full_link"),
+            "id": key_or_nah(post_data, "id"),
+            "num_comments": key_or_nah(post_data, "num_comments"),
+            "num_crossposts": key_or_nah(post_data, "num_crossposts"),
+            "retrieved_on": key_or_nah(post_data, "retrieved_on"),
+            "score": key_or_nah(post_data, "score"),
+            "selftext": key_or_nah(post_data, "selftext"),
+            "subreddit": key_or_nah(post_data, "subreddit"),
+            "post_hint": key_or_nah(post_data, "post_hint"),
+            "subreddit_subscribers": key_or_nah(post_data, "subreddit_subscribers"),
+            "title": key_or_nah(post_data, "title"),
+            "updated_utc": key_or_nah(post_data, "updated_utc"),
+            "url": key_or_nah(post_data, "url")
+            }
+            
+
+            parsed_posts.append(parsed_post)
+            
+    return parsed_posts
+
+
+def key_or_nah(dictionary, key): #checks to see if a key exists in a dictionary. If it does, return its pair value. If not, return nothing
+    if key in dictionary:
+        return dictionary[key]
+    else:
+        return None

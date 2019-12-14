@@ -7,6 +7,25 @@ import pandas as pd
 import pprint
 import csv
 
+
+
+##############################################################
+# Our initial script for retrieving submission data from Reddit
+# using the pushshift.io api.
+#
+# This script returns all posts from a series of subreddits
+# between two dates/
+##############################################################
+
+
+
+
+
+
+
+
+
+
 subreddits = ["hearthstone", "blizzard", "HongKong", "overwatch", "gaming"]
 
 if __name__ == "__main__":

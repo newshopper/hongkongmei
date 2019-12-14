@@ -49,7 +49,17 @@ def main(write):
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
 
     
+    # test = get_crossposts("df2rz7")
+    
+    # for item in test:
+    #     print(item['author'])
+    #     print(item['subreddit'])
+    #     print(item['title'])
+    #     print("")
 
+    crossposts = get_crossposts("https://www.reddit.com/r/HongKong/comments/df2rz7/it_would_be_such_a_shame_if_mei_from_overwatch/")
+
+    print(crossposts)
     # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
     # comment_ids = get_post_comment_ids(blitzchung_seed_id)
     # comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
@@ -60,7 +70,7 @@ def main(write):
     # author = "williamthebastardd"
 
 
-    initialize_pipeline(blitzchung_seed_id)
+    #initialize_pipeline(blitzchung_seed_id)
     
 def initialize_pipeline(seed_id):
     print("Initializing pipeline ... feeding in seed post")
@@ -105,72 +115,7 @@ def proliferate(post, post_ids, author_ids, since, until):
     for new_post in new_posts:
         proliferate(new_post, post_ids, author_ids, since, until)
 
-def parse_comments(comments_data, post_id, post_id_dict):
-    parsed_comments = []
-    if post_id in post_id_dict and post_id_dict[post_id] == True: #Check if we've already handled the post that these comments are coming from 
-        nothing = "do nothing"
-    elif len(comments_data) > 0: #If we haven't handled that post, let's check that there are comments to handle
-        for comment in comments_data:
-            
-            comment_id = comment['id']
-            if comment_id in post_id_dict and post_id_dict[comment_id] == True:
-                continue
-            parsed_comment = {
-                'id': key_or_nah(comment, "id"),
-                'author': key_or_nah(comment, "author"),
-                'post_id': post_id,
-                'body': key_or_nah(comment, "body"),
-                'score': key_or_nah(comment, "score"),
-                'created_utc': key_or_nah(comment, "created_utc"),
-                'retrieved_on': key_or_nah(comment, "retreived_on"),
-                'parent_id': key_or_nah(comment, "parent_id"),
-                'stickied': key_or_nah(comment, "stickied"),
-                'subreddit': key_or_nah(comment, "subreddit"),
-                'permalink': key_or_nah(comment, "permalink")
-            }
 
-            parsed_comments.append(parsed_comment)
-    
-    return parsed_comments
-
-
-def parse_posts(all_posts_data, post_id_dict):
-    parsed_posts = []
-    if len(all_posts_data) > 0:
-        for post_data in all_posts_data:
-            post_id = post_data['id']
-            if post_id in post_id_dict and post_id_dict[post_id] == True:
-                continue
-   
-            parsed_post = {
-            "author": key_or_nah(post_data, "author"),
-            "created_utc": key_or_nah(post_data, "created_utc"),
-            "full_link": key_or_nah(post_data, "full_link"),
-            "id": key_or_nah(post_data, "id"),
-            "num_comments": key_or_nah(post_data, "num_comments"),
-            "num_crossposts": key_or_nah(post_data, "num_crossposts"),
-            "retrieved_on": key_or_nah(post_data, "retrieved_on"),
-            "score": key_or_nah(post_data, "score"),
-            "selftext": key_or_nah(post_data, "selftext"),
-            "subreddit": key_or_nah(post_data, "subreddit"),
-            "post_hint": key_or_nah(post_data, "post_hint"),
-            "subreddit_subscribers": key_or_nah(post_data, "subreddit_subscribers"),
-            "title": key_or_nah(post_data, "title"),
-            "updated_utc": key_or_nah(post_data, "updated_utc"),
-            "url": key_or_nah(post_data, "url")
-            }
-            
-
-            parsed_posts.append(parsed_post)
-            
-    return parsed_posts
-
-
-def key_or_nah(dictionary, key): #checks to see if a key exists in a dictionary. If it does, return its pair value. If not, return nothing
-    if key in dictionary:
-        return dictionary[key]
-    else:
-        return None
 
 if __name__ == "__main__":
     correct_input = False
