@@ -1,4 +1,6 @@
-from pipline_functions import get_posts_data,get_comments,get_user_posts,get_crosspost_ids,get_crossposts,get_crossposts_praw,parse_posts,parse_comments
+from pipline_functions import get_posts_data,get_comments,get_user_posts,get_crosspost_ids,get_crossposts
+from pipline_functions import get_crossposts_praw,parse_posts,parse_comments, get_relevant_posts, get_relevant_comments
+from pipline_functions import is_post_relevant
 from storage_functions import open_database,set_cursor,wipe_database,close_database
 from storage_functions import create_tables #Wrapper function to create three tables
 from storage_functions import db_push #Wrapper function to push reddit data to db
@@ -6,6 +8,7 @@ import pandas as pd
 import time
 import os
 import sys
+
 ### Seed posts
 ## Three options for general seed
 # First post about blizzard suspension to gain big traction in major subreddit: https://www.reddit.com/r/hearthstone/comments/dehdhm/blizzard_taiwan_deleted_hearthstone_grandmasters/   
@@ -46,7 +49,9 @@ def main(write):
     
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
-    print(get_crossposts_praw("dej74n")[0]['author'])
+    # crossposts = get_crossposts_praw("dej74n")
+    # if len(crossposts) > 0:
+    #     print(crossposts[0]['author'])
     
     # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
     # comment_ids = get_post_comment_ids(blitzchung_seed_id)
@@ -71,66 +76,73 @@ def initialize_pipeline(seed_id):
 
     #Create time window to track user interaction
     since = parsed_seed_post['created_utc'] 
-    until = since + 172800 #604800 #One week (in seconds) after seed post was posted
+    until = since + 3600 #604800 #One week (in seconds) after seed post was posted
+
+    # print(since, until)
     
     # db_push(cur, conn, new_authors, new_posts, comments) 
     
     post_queue.append(seed_post)
-    
-    
     proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
 
 
 def proliferate(post, post_queue, post_ids, author_ids, since, until):
-    
-    
-    #tabulate new reddit info coming in
-    new_posts = []
-    new_authors = []
+    '''
+    Handles the actions for proliferation of posts. Fetches comments of a post, the users
+    associated with the comments and their posts. Only those posts are processed whose title/text
+    are relevant to the Hong Kong protests. Comments are also similarly processed based on relevance.
+    '''
+    prediction = is_post_relevant(post)
+    # Process the post only if it is relevant to the Hong Kong protests
+    if prediction == True:
+        #tabulate new reddit info coming in
+        new_posts = []
+        new_authors = []
 
-    post_author = post['author']
-    if post_author not in author_ids: #Check if we've processed the author of the post
-        post_author_posts = get_user_posts(post_author, since, until)
-        parsed_post_author_posts = parse_posts(post_author_posts, post_ids)
-        new_authors = new_authors + [post_author] 
-        new_posts = new_posts + parsed_post_author_posts
-        author_ids[post_author] = True #Indicate that we've pulled their activity
-    
-    comments = get_comments(post['id']) #get all comment data from post
-    parsed_comments = parse_comments(comments, post['id'], post_ids) #parse returns to remove unecessary data
-    
-    for parsed_comment in parsed_comments:
-        post_ids[parsed_comment['id']] = True #add the comment id so we don't reiterate over it
-        parsed_comment_author = parsed_comment['author']
-        if parsed_comment_author not in author_ids:
-            author_posts = get_user_posts(parsed_comment_author, since, until) #get user activity from this new (previously unseen) user
-            parsed_author_posts = parse_posts(author_posts, post_ids)
-            new_authors = new_authors + [parsed_comment_author] 
-            new_posts = new_posts + parsed_author_posts
-            author_ids[parsed_comment_author] = True
-    
+        post_author = post['author']
+        if post_author not in author_ids: #Check if we've processed the author of the post
+            post_author_posts = get_user_posts(post_author, since, until)
+            parsed_post_author_posts = parse_posts(post_author_posts, post_ids)
+            new_authors = new_authors + [post_author] 
+            new_posts = new_posts + parsed_post_author_posts
+            author_ids[post_author] = True #Indicate that we've pulled their activity
+        
+        comments = get_comments(post['id']) #get all comment data from post
+        parsed_comments = parse_comments(comments, post['id'], post_ids) #parse returns to remove unecessary data
+        relevant_comments = get_relevant_comments(parsed_comments) # get comments relevant to the HK protests
 
-    db_push(cur, conn, new_authors, [post], parsed_comments) #push the post, it's comments and all participating authors to the db
+        for parsed_comment in relevant_comments:
+            post_ids[parsed_comment['id']] = True #add the comment id so we don't reiterate over it
+            parsed_comment_author = parsed_comment['author']
+            if parsed_comment_author not in author_ids:
+                author_posts = get_user_posts(parsed_comment_author, since, until) #get user activity from this new (previously unseen) user
+                parsed_author_posts = parse_posts(author_posts, post_ids)
+                new_authors = new_authors + [parsed_comment_author] 
+                new_posts = new_posts + parsed_author_posts
+                author_ids[parsed_comment_author] = True
+
+        #push the post, its comments and all participating authors to the db
+        db_push(cur, conn, new_authors, [post], relevant_comments) 
 
 
-    post_ids[post['id']] = True #All comments, crossposts and associated user data has been processed
+        post_ids[post['id']] = True #All comments, crossposts and associated user data has been processed
 
-    # get crossposts
-    crossposts = get_crossposts_praw(post['id'])
-    parsed_crossposts = parse_posts(crossposts, post_ids)
-    
-    new_posts = new_posts + parsed_crossposts
-
-    # # add new posts to the queue
-   
-    if len(post_queue) > 0:
+        # get crossposts
+        crossposts = get_crossposts(post['full_link'])
+        # crossposts = get_crossposts_praw(post['id'])
+        parsed_crossposts = parse_posts(crossposts, post_ids)
+        new_posts = new_posts + parsed_crossposts
+        # remove processed post from the queue
+        if len(post_queue) > 0:
+            post_queue.pop(0)
+        # # add new posts to the queue
+        post_queue = post_queue + new_posts
+        proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
+    else:
+        post_ids[post['id']] = True
         post_queue.pop(0)
-    post_queue = post_queue + new_posts
-  
-    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
-    
-   
-
+        if len(post_queue) > 0:
+            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
 
 
 if __name__ == "__main__":

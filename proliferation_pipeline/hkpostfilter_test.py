@@ -112,7 +112,7 @@ class StanceClassification:
             feature_names = model.named_steps['ngram'].get_feature_names()
 
             top20_index = [i for i, x in enumerate(top20_best.get_support()) if x]
-            print("Top 20 features : %s" % (", ".join(feature_names[i] for i in top20_index)))
+            # print("Top 20 features : %s" % (", ".join(feature_names[i] for i in top20_index)))
             # End
 
         print("\nF1-measure: ", mean(f1_scores))
@@ -179,7 +179,7 @@ def main():
     
 
 
-def predict():
+def predict_test():
     print('predicting for the given test file')
     # read model from file
     model = pickle.load(open('model', 'rb'))
@@ -191,6 +191,19 @@ def predict():
     df.to_csv("predictions.csv", index=False, encoding = "ISO-8859-1")
 
 
+def predict(text):
+    '''
+    Accepts text as input and returns the predicted label wrapped in an array.
+    Labels are either 0 or 1.
+    '''
+    # title could be blank
+    model = pickle.load(open('model', 'rb'))
+    test_data = np.asarray([text])
+    prediction = model.predict(test_data)
+    return prediction
+
+
 if __name__ == '__main__':
     main()
-    predict()
+    # predict_test()
+    print(predict("Hong Kong protests started last week"))

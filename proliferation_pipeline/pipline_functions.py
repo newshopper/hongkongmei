@@ -5,6 +5,8 @@ import random
 import os
 import praw
 import time
+import psycopg2
+from hkpostfilter_test import predict
 
 ##################################################################################################
 # Gets Reddit credentials from environment variables
@@ -19,9 +21,33 @@ reddit = praw.Reddit(client_id=reddit_client_id,
                      user_agent=reddit_user_agent, username=reddit_username)
 
 
-##################################################################################################
+# Endpoint constants
+CONST_COMMENT_ID_EP = "https://api.pushshift.io/reddit/submission/comment_ids/"
+CONST_SEARCH_COMMENT_EP = "https://api.pushshift.io/reddit/search/comment/"
+CONST_SEARCH_POST_EP = "https://api.pushshift.io/reddit/search/submission/"
 
-   
+# JSON Keys
+CONST_AUTHOR = "author"
+CONST_CREATED_UTC = "created_utc"
+CONST_ID = "id"
+CONST_NUMCOMMENTS = "num_comments"
+CONST_NUMCROSSPOSTS = "num_crossposts"
+CONST_SCORE = "score"
+CONST_SELFTEXT = "selftext"
+CONST_SUBREDDIT = "subreddit"
+CONST_POSTHINT = "post_hint"
+CONST_SUBREDDIT_SUBSCRIBERS = "subreddit_subscribers"
+CONST_TITLE = "title"
+CONST_FULL_LINK = "full_link"
+CONST_RETRIEVED_ON = "retrieved_on"
+CONST_URL = "url"
+CONST_UPDATED_UTC = "updated_utc"
+CONST_POST_ID = "post_id"
+CONST_BODY = "body"
+CONST_PARENT_ID = "parent_id"
+CONST_PERMALINK = "permalink"
+CONST_STICKIED = "stickied"
+##################################################################################################  
 
 ################################################################################################
 # Get post data using list of post id strings
@@ -32,9 +58,7 @@ reddit = praw.Reddit(client_id=reddit_client_id,
 # Returns a list of all the post information 
 ###############################################################################################
 def get_posts_data(post_ids):
-    print(f"Calling get_post_data method on posts: {post_ids}")
-    
-    search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"    
+    print(f"Calling get_post_data method on posts: {post_ids}")   
 
     print(f'Total posts to fetch: {len(post_ids)}')
     
@@ -61,12 +85,15 @@ def get_posts_data(post_ids):
         }
         num_returned_posts = num_returned_posts + num_incoming_posts #increment our returned comments for the while loop
 
-        request = requests.get(url=search_post_endpoint, params=params)
+        request = requests.get(url=CONST_SEARCH_POST_EP, params=params)
 
         if request.status_code == 200:
             response = request.json()
             all_post_data = all_post_data + response['data']
-        
+        elif request.status_code == 429:
+            print("Rate limit exceeded. Sleeping for 5 sec")
+            time.sleep(5)
+            all_posts_data = get_posts_data(post_ids)
         else:
             print("something went wrong")
             print(f"Tried to pull post data from posts: {fetching_posts}")
@@ -120,19 +147,22 @@ def get_crosspost_ids(url):
     return crosspost_ids
 
 ################################################################################################
-
+# Get crossposts from the given URL. This method gets all the crosspost ids first and then calls
+# get_posts_data() to retrieve the content of the posts
 ################################################################################################
 def get_crossposts(url):
     '''
     Get crossposts from the given URL. This method gets all the crosspost ids first and then calls
     get_posts_data() to retrieve the content of the posts
     '''
+    print(f'Fetching crossposts for: {url}')
     crosspost_ids = get_crosspost_ids(url)
     crossposts = get_posts_data(crosspost_ids)
+    print(f'{len(crossposts)} crossposts fetched')
     return crossposts
 
 ################################################################################################
-
+# Get crossposts using the praw library. It takes the original post_id as input.
 ################################################################################################
 def get_crossposts_praw(post_id):
     '''
@@ -142,20 +172,23 @@ def get_crossposts_praw(post_id):
     crossposts = []
     try:
         for duplicate in submission.duplicates():
-        
+            print('Processing crossposts')
+            print(type(duplicate.created_utc))
+            # if duplicate.created_utc < 1570435322 or duplicate.created_utc > 1570438922:
+            #     continue
             parsed_post = {
-                "author": duplicate.author,
-                "created_utc": duplicate.created_utc,
-                "id": duplicate.id,
-                "num_comments": duplicate.num_comments,
-                "num_crossposts": duplicate.num_crossposts,
-                "score": duplicate.score,
-                "selftext": duplicate.selftext,
-                "subreddit": duplicate.subreddit,
-                "post_hint": duplicate.post_hint,
-                "subreddit_subscribers": duplicate.subreddit_subscribers,
-                "title": duplicate.title,
-                "url": duplicate.url
+                CONST_AUTHOR: duplicate.author,
+                CONST_CREATED_UTC: duplicate.created_utc,
+                CONST_ID: duplicate.id,
+                CONST_NUMCOMMENTS: duplicate.num_comments,
+                CONST_NUMCROSSPOSTS: duplicate.num_crossposts,
+                CONST_SCORE: duplicate.score,
+                CONST_SELFTEXT: duplicate.selftext,
+                CONST_SUBREDDIT: duplicate.subreddit,
+                CONST_POSTHINT: duplicate.post_hint,
+                CONST_SUBREDDIT_SUBSCRIBERS: duplicate.subreddit_subscribers,
+                CONST_TITLE: duplicate.title,
+                CONST_URL: duplicate.url
                 }
             crossposts.append(parsed_post)
     except:
@@ -174,9 +207,14 @@ def get_crossposts_praw(post_id):
 # Comment ids come in chronological order
 ##################################################################################################
 def get_post_comment_ids(post_id):
+    '''
+    Gets all the comment ids from a specific post.
+    Returns an array of comment ids in chronological order that you can process
+    with other function calls.
+    '''
     print(f"Calling get_post_comment_ids method on post: {post_id}")
     
-    post_comment_endpoint = "https://api.pushshift.io/reddit/submission/comment_ids/" #pushshift endpoint for querying comment_ids for a specific post
+    post_comment_endpoint = CONST_COMMENT_ID_EP #pushshift endpoint for querying comment_ids for a specific post
 
     full_url = post_comment_endpoint + post_id #adds post id to the url string
 
@@ -216,15 +254,9 @@ def get_comments_data(post_id,comment_ids):
     '''
     Gets all comment data from a list of comment ids 
     Inputs an array of comment_ids ["f2varzxq","f2vdegg"], re-formats them as a comma-deliminated 
-    string and feeds it as a parameter to the pushshift api 
-    Requests with endpoint "https://api.pushshift.io/reddit/search/comment/" and parameter of 
-    the comma-deliminated string 'ids'. 
-    Note: There are some limitations with the number of comments we can access at a time. So, we have
-    to run a while loop to return all of them
+    string and feeds it as a parameter to the pushshift api. 
     '''
     print("Calling get_comments_data method")
-    
-    search_comment_endpoint = "https://api.pushshift.io/reddit/search/comment/"
 
     print(f'Total comments to fetch: {len(comment_ids)}')
 
@@ -250,7 +282,7 @@ def get_comments_data(post_id,comment_ids):
             "ids": csv_ids,
             "size": 500
          }
-        request = requests.get(url=search_comment_endpoint, params=params)
+        request = requests.get(url=CONST_SEARCH_COMMENT_EP, params=params)
 
         if request.status_code == 200:
             response = request.json()
@@ -258,7 +290,7 @@ def get_comments_data(post_id,comment_ids):
         elif request.status_code == 429:
             print("Rate limit exceeded. Sleeping for 10 sec")
             time.sleep(10)
-            all_comment_data = get_comments_data(post_id, comment_id)
+            all_comment_data = get_comments_data(post_id, comment_ids)
         
         else:
             print("something went wrong")
@@ -302,10 +334,10 @@ def get_user_posts(author, since, until):
     This method is used in the main script to find posts by users after interaction on a previous post
     Returns a list of post ids 
     '''
-    search_post_endpoint = "https://api.pushshift.io/reddit/search/submission/"
+    
     all_post_data = []
 
-    print(author)
+    #print(author)
     while True:
 
         params = {
@@ -315,7 +347,7 @@ def get_user_posts(author, since, until):
             "size": 500 #max of 500, but we can boost it with a loop and an update to after alla scrape.py file
         }
 
-        request = requests.get(url=search_post_endpoint, params=params)
+        request = requests.get(url=CONST_SEARCH_POST_EP, params=params)
         if request.status_code == 200:
             response = request.json()
             all_post_data = all_post_data + response['data']
@@ -331,12 +363,17 @@ def get_user_posts(author, since, until):
             print("something went wrong")
             print("Tried to pull post activity from user: {}".format(author))
             print(f'status code: {request.status_code}')
-    print(len(all_post_data))
+    #print(len(all_post_data))
     return all_post_data
 
-
-
+#####################################################################################
+# Parse the JSON returned for each comment. We do not want all the fields returned in
+# the response.
+#####################################################################################
 def parse_comments(comments_data, post_id, post_id_dict):
+    '''
+    Parse the JSON returned for each comment into releveant fields.
+    '''
     parsed_comments = []
     if post_id in post_id_dict and post_id_dict[post_id] == True: #Check if we've already handled the post that these comments are coming from 
         nothing = "do nothing"
@@ -347,25 +384,53 @@ def parse_comments(comments_data, post_id, post_id_dict):
             if comment_id in post_id_dict and post_id_dict[comment_id] == True:
                 continue
             parsed_comment = {
-                'id': key_or_nah(comment, "id"),
-                'author': key_or_nah(comment, "author"),
-                'post_id': post_id,
-                'body': key_or_nah(comment, "body"),
-                'score': key_or_nah(comment, "score"),
-                'created_utc': key_or_nah(comment, "created_utc"),
-                'retrieved_on': key_or_nah(comment, "retrieved_on"),
-                'parent_id': key_or_nah(comment, "parent_id"),
-                'stickied': key_or_nah(comment, "stickied"),
-                'subreddit': key_or_nah(comment, "subreddit"),
-                'permalink': key_or_nah(comment, "permalink")
+                CONST_ID: key_or_nah(comment, CONST_ID),
+                CONST_AUTHOR: key_or_nah(comment, CONST_AUTHOR),
+                CONST_POST_ID: post_id,
+                CONST_BODY: key_or_nah(comment, CONST_BODY),
+                CONST_SCORE: key_or_nah(comment, CONST_SCORE),
+                CONST_CREATED_UTC: key_or_nah(comment, CONST_CREATED_UTC),
+                CONST_RETRIEVED_ON: key_or_nah(comment, CONST_RETRIEVED_ON),
+                CONST_PARENT_ID: key_or_nah(comment, CONST_PARENT_ID),
+                CONST_STICKIED: key_or_nah(comment, CONST_STICKIED),
+                CONST_SUBREDDIT: key_or_nah(comment, CONST_SUBREDDIT),
+                CONST_PERMALINK: key_or_nah(comment, CONST_PERMALINK)
             }
 
             parsed_comments.append(parsed_comment)
     
     return parsed_comments
 
+#####################################################################################
+# Pass the comment text through the classifier and determine if the comment
+# is relevant to the Hong Kong protests or not.
+#
+# Return the relevant comments.
+#####################################################################################
+def get_relevant_comments(parsed_comments):
+    '''
+    pass the comment text through the classifier and determine if the comment is relevant to 
+    the Hong Kong protests or not.
+    Return the relevant comments.
+    '''
+    relevant_comments = []
+    for comment in parsed_comments:
+        if comment[CONST_BODY] is not None:
+            isRelevant = predict(comment[CONST_BODY])[0]
+            if isRelevant == True:
+                relevant_comments.append(comment)
 
+    return relevant_comments
+
+#####################################################################################
+# Parse the JSON returned for each post. We do not want all the fields returned in
+# the response.
+#####################################################################################
 def parse_posts(all_posts_data, post_id_dict):
+    '''
+    Parse the JSON returned for each comment. We do not want all the fields returned in
+    the response.
+    '''
     parsed_posts = []
     
     if len(all_posts_data) > 0:
@@ -375,21 +440,21 @@ def parse_posts(all_posts_data, post_id_dict):
                 continue
    
             parsed_post = {
-            "author": key_or_nah(post_data, "author"),
-            "created_utc": key_or_nah(post_data, "created_utc"),
-            "full_link": key_or_nah(post_data, "full_link"),
-            "id": key_or_nah(post_data, "id"),
-            "num_comments": key_or_nah(post_data, "num_comments"),
-            "num_crossposts": key_or_nah(post_data, "num_crossposts"),
-            "retrieved_on": key_or_nah(post_data, "retrieved_on"),
-            "score": key_or_nah(post_data, "score"),
-            "selftext": key_or_nah(post_data, "selftext"),
-            "subreddit": key_or_nah(post_data, "subreddit"),
-            "post_hint": key_or_nah(post_data, "post_hint"),
-            "subreddit_subscribers": key_or_nah(post_data, "subreddit_subscribers"),
-            "title": key_or_nah(post_data, "title"),
-            "updated_utc": key_or_nah(post_data, "updated_utc"),
-            "url": key_or_nah(post_data, "url")
+            CONST_AUTHOR: key_or_nah(post_data, CONST_AUTHOR),
+            CONST_CREATED_UTC: key_or_nah(post_data, CONST_CREATED_UTC),
+            CONST_FULL_LINK: key_or_nah(post_data, CONST_FULL_LINK),
+            CONST_ID: key_or_nah(post_data, CONST_ID),
+            CONST_NUMCOMMENTS: key_or_nah(post_data, CONST_NUMCOMMENTS),
+            CONST_NUMCROSSPOSTS: key_or_nah(post_data, CONST_NUMCROSSPOSTS),
+            CONST_RETRIEVED_ON: key_or_nah(post_data, CONST_RETRIEVED_ON),
+            CONST_SCORE: key_or_nah(post_data, CONST_SCORE),
+            CONST_SELFTEXT: key_or_nah(post_data, CONST_SELFTEXT),
+            CONST_SUBREDDIT: key_or_nah(post_data, CONST_SUBREDDIT),
+            CONST_POSTHINT: key_or_nah(post_data, CONST_POSTHINT),
+            CONST_SUBREDDIT_SUBSCRIBERS: key_or_nah(post_data, CONST_SUBREDDIT_SUBSCRIBERS),
+            CONST_TITLE: key_or_nah(post_data, CONST_TITLE),
+            CONST_UPDATED_UTC: key_or_nah(post_data, CONST_UPDATED_UTC),
+            CONST_URL: key_or_nah(post_data, CONST_URL)
             }
             
 
@@ -397,8 +462,47 @@ def parse_posts(all_posts_data, post_id_dict):
             
     return parsed_posts
 
+#####################################################################################
+# Pass the post title and text through the classifier and determine if the comment
+# is relevant to the Hong Kong protests or not.
+#
+# Return the relevant posts.
+#####################################################################################
+def get_relevant_posts(parsed_posts):
+    '''
+    pass the post title and text through the classifier and determine if the comment is relevant to 
+    the Hong Kong protests or not.
+    Return the relevant comments.
+    '''
+    relevant_posts = []
+    for post in parsed_posts:
+        post_title = "" if post[CONST_TITLE] is None else post[CONST_TITLE]
+        post_text = "" if post[CONST_SELFTEXT] is None else post[CONST_SELFTEXT]
+        full_text = post_title + ' ' + post_text
+       
+        isRelevant = predict(full_text)[0]
+        if isRelevant == True:
+            relevant_posts.append(post)
 
-def key_or_nah(dictionary, key): #checks to see if a key exists in a dictionary. If it does, return its pair value. If not, return nothing
+    return relevant_posts
+
+def is_post_relevant(post):
+    '''
+    Takes a post and returns True or False depending on whether it is relevant to the 
+    Hong Kong protests.
+    '''
+    post_title = "" if post[CONST_TITLE] is None else post[CONST_TITLE]
+    post_text = "" if post[CONST_SELFTEXT] is None else post[CONST_SELFTEXT]
+    full_text = post_title + ' ' + post_text
+    isRelevant = True if predict(full_text)[0] == 1 else False
+    return isRelevant
+
+
+def key_or_nah(dictionary, key): #
+    '''
+    Checks to see if a key exists in a dictionary.
+    If it does, return its pair value. If not, return nothing
+    '''
     if key in dictionary:
         return dictionary[key]
     else:
