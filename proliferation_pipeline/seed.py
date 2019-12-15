@@ -1,4 +1,4 @@
-from pipline_functions import get_posts_data,get_comments,get_user_posts,get_crosspost_ids,get_crossposts
+from pipline_functions import get_posts_data,get_comments,get_user_posts,get_crosspost_ids,get_crossposts, enqueue_post_ids
 from pipline_functions import get_crossposts_praw,parse_posts,parse_comments, get_relevant_posts, get_relevant_comments
 from pipline_functions import is_post_relevant
 from storage_functions import open_database,set_cursor,wipe_database,close_database
@@ -68,7 +68,7 @@ def main(write):
 def initialize_pipeline(seed_id):
     print("Initializing pipeline ... feeding in seed post")
     
-    post_ids = {} #establish dictionary to track processed posts
+    post_ids = {} #establish dictionary to track queued and processed posts. Key is the post id. "False" means the post has been queued, but not processed. "True" means the post has been processed
     author_ids = {} #establish dictionary to track new authors  
     post_queue = [] #queue of posts to process
     seed_post = get_posts_data([seed_id])[0] #Call data on first post
@@ -76,35 +76,42 @@ def initialize_pipeline(seed_id):
 
     #Create time window to track user interaction
     since = parsed_seed_post['created_utc'] 
-    until = since + 3600 #604800 #One week (in seconds) after seed post was posted
+    until = since + 259200 #604800 #One week (in seconds) after seed post was posted
 
-    # print(since, until)
-    
-    # db_push(cur, conn, new_authors, new_posts, comments) 
-    
-    post_queue.append(seed_post)
-    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
+    post_ids[parsed_seed_post['id']] = False
+    post_queue.append(parsed_seed_post)
+    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, 0)
 
 
-def proliferate(post, post_queue, post_ids, author_ids, since, until):
+def proliferate(post, post_queue, post_ids, author_ids, since, until, count):
     '''
     Handles the actions for proliferation of posts. Fetches comments of a post, the users
     associated with the comments and their posts. Only those posts are processed whose title/text
     are relevant to the Hong Kong protests. Comments are also similarly processed based on relevance.
     '''
+    count = count + 1
+    # if count > 12:
+    #     print(post_queue)
+    #     print(post_ids)
+    #     sys.exit()
+
+
     prediction = is_post_relevant(post)
     # Process the post only if it is relevant to the Hong Kong protests
-    if prediction == True:
+    if prediction == True and post_ids[post['id']] != True:
         #tabulate new reddit info coming in
-        new_posts = []
+        #new_posts = []
         new_authors = []
 
         post_author = post['author']
-        if post_author not in author_ids: #Check if we've processed the author of the post
+        if post_author not in author_ids: #Check if we've processed the author of the post (the OP)
             post_author_posts = get_user_posts(post_author, since, until)
-            parsed_post_author_posts = parse_posts(post_author_posts, post_ids)
+            parsed_post_author_posts = parse_posts(post_author_posts, post_ids) #cleans up post data and only returns new posts (that are not already in the queue or haven't been processed)
+            post_queue = post_queue + parsed_post_author_posts #add previously unseen posts from author to queue
+            post_ids = enqueue_post_ids(parsed_post_author_posts, post_ids) #update post_ids to show the new posts from the author are now in the queue
+            
+            #new_posts = new_posts + parsed_post_author_posts
             new_authors = new_authors + [post_author] 
-            new_posts = new_posts + parsed_post_author_posts
             author_ids[post_author] = True #Indicate that we've pulled their activity
         
         comments = get_comments(post['id']) #get all comment data from post
@@ -117,8 +124,11 @@ def proliferate(post, post_queue, post_ids, author_ids, since, until):
             if parsed_comment_author not in author_ids:
                 author_posts = get_user_posts(parsed_comment_author, since, until) #get user activity from this new (previously unseen) user
                 parsed_author_posts = parse_posts(author_posts, post_ids)
-                new_authors = new_authors + [parsed_comment_author] 
-                new_posts = new_posts + parsed_author_posts
+                post_queue = post_queue + parsed_author_posts 
+                post_ids = enqueue_post_ids(parsed_author_posts, post_ids)
+                
+                #new_posts = new_posts + parsed_author_posts
+                new_authors = new_authors + [parsed_comment_author]
                 author_ids[parsed_comment_author] = True
 
         #push the post, its comments and all participating authors to the db
@@ -131,18 +141,26 @@ def proliferate(post, post_queue, post_ids, author_ids, since, until):
         crossposts = get_crossposts(post['full_link'])
         # crossposts = get_crossposts_praw(post['id'])
         parsed_crossposts = parse_posts(crossposts, post_ids)
-        new_posts = new_posts + parsed_crossposts
+        post_queue = post_queue + parsed_crossposts
+        post_ids = enqueue_post_ids(parsed_crossposts, post_ids)
+
+        #new_posts = new_posts + parsed_crossposts
+        
+        
+        # # add new posts to the queue
+        #post_queue = post_queue + new_posts
+        print([x['id'] for x in post_queue])
         # remove processed post from the queue
         if len(post_queue) > 0:
             post_queue.pop(0)
-        # # add new posts to the queue
-        post_queue = post_queue + new_posts
-        proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
+            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
+        else:
+            print("Done!")
     else:
         post_ids[post['id']] = True
         post_queue.pop(0)
         if len(post_queue) > 0:
-            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until)
+            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
 
 
 if __name__ == "__main__":

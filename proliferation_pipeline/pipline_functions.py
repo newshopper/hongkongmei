@@ -58,9 +58,9 @@ CONST_STICKIED = "stickied"
 # Returns a list of all the post information 
 ###############################################################################################
 def get_posts_data(post_ids):
-    print(f"Calling get_post_data method on posts: {post_ids}")   
+    print(f"Calling get_post_data method") #on posts: {post_ids}")   
 
-    print(f'Total posts to fetch: {len(post_ids)}')
+    #print(f'Total posts to fetch: {len(post_ids)}')
     
 
     num_returned_posts = 0
@@ -334,7 +334,7 @@ def get_user_posts(author, since, until):
     This method is used in the main script to find posts by users after interaction on a previous post
     Returns a list of post ids 
     '''
-    
+    print(f"Getting posts from author: {author}")
     all_post_data = []
 
     #print(author)
@@ -356,8 +356,8 @@ def get_user_posts(author, since, until):
             else: 
                 since = response['data'][-1]['created_utc']  
         elif request.status_code == 429:
-            print("Rate limit exceeded. Sleeping for 10 sec")
-            time.sleep(10)
+            print("Rate limit exceeded. Sleeping for 5 sec")
+            time.sleep(5)
             all_post_data = get_user_posts(author, since, until)
         else:
             print("something went wrong")
@@ -381,24 +381,25 @@ def parse_comments(comments_data, post_id, post_id_dict):
         for comment in comments_data:
             
             comment_id = comment['id']
-            if comment_id in post_id_dict and post_id_dict[comment_id] == True:
+            if comment_id in post_id_dict:
                 continue
-            parsed_comment = {
-                CONST_ID: key_or_nah(comment, CONST_ID),
-                CONST_AUTHOR: key_or_nah(comment, CONST_AUTHOR),
-                CONST_POST_ID: post_id,
-                CONST_BODY: key_or_nah(comment, CONST_BODY),
-                CONST_SCORE: key_or_nah(comment, CONST_SCORE),
-                CONST_CREATED_UTC: key_or_nah(comment, CONST_CREATED_UTC),
-                CONST_RETRIEVED_ON: key_or_nah(comment, CONST_RETRIEVED_ON),
-                CONST_PARENT_ID: key_or_nah(comment, CONST_PARENT_ID),
-                CONST_STICKIED: key_or_nah(comment, CONST_STICKIED),
-                CONST_SUBREDDIT: key_or_nah(comment, CONST_SUBREDDIT),
-                CONST_PERMALINK: key_or_nah(comment, CONST_PERMALINK)
-            }
+            else:
+                parsed_comment = {
+                    CONST_ID: key_or_nah(comment, CONST_ID),
+                    CONST_AUTHOR: key_or_nah(comment, CONST_AUTHOR),
+                    CONST_POST_ID: post_id,
+                    CONST_BODY: key_or_nah(comment, CONST_BODY),
+                    CONST_SCORE: key_or_nah(comment, CONST_SCORE),
+                    CONST_CREATED_UTC: key_or_nah(comment, CONST_CREATED_UTC),
+                    CONST_RETRIEVED_ON: key_or_nah(comment, CONST_RETRIEVED_ON),
+                    CONST_PARENT_ID: key_or_nah(comment, CONST_PARENT_ID),
+                    CONST_STICKIED: key_or_nah(comment, CONST_STICKIED),
+                    CONST_SUBREDDIT: key_or_nah(comment, CONST_SUBREDDIT),
+                    CONST_PERMALINK: key_or_nah(comment, CONST_PERMALINK)
+                }
 
-            parsed_comments.append(parsed_comment)
-    
+                parsed_comments.append(parsed_comment)
+        
     return parsed_comments
 
 #####################################################################################
@@ -436,29 +437,29 @@ def parse_posts(all_posts_data, post_id_dict):
     if len(all_posts_data) > 0:
         for post_data in all_posts_data:
             post_id = post_data['id']
-            if post_id in post_id_dict and post_id_dict[post_id] == True:
+            if post_id in post_id_dict:
                 continue
-   
-            parsed_post = {
-            CONST_AUTHOR: key_or_nah(post_data, CONST_AUTHOR),
-            CONST_CREATED_UTC: key_or_nah(post_data, CONST_CREATED_UTC),
-            CONST_FULL_LINK: key_or_nah(post_data, CONST_FULL_LINK),
-            CONST_ID: key_or_nah(post_data, CONST_ID),
-            CONST_NUMCOMMENTS: key_or_nah(post_data, CONST_NUMCOMMENTS),
-            CONST_NUMCROSSPOSTS: key_or_nah(post_data, CONST_NUMCROSSPOSTS),
-            CONST_RETRIEVED_ON: key_or_nah(post_data, CONST_RETRIEVED_ON),
-            CONST_SCORE: key_or_nah(post_data, CONST_SCORE),
-            CONST_SELFTEXT: key_or_nah(post_data, CONST_SELFTEXT),
-            CONST_SUBREDDIT: key_or_nah(post_data, CONST_SUBREDDIT),
-            CONST_POSTHINT: key_or_nah(post_data, CONST_POSTHINT),
-            CONST_SUBREDDIT_SUBSCRIBERS: key_or_nah(post_data, CONST_SUBREDDIT_SUBSCRIBERS),
-            CONST_TITLE: key_or_nah(post_data, CONST_TITLE),
-            CONST_UPDATED_UTC: key_or_nah(post_data, CONST_UPDATED_UTC),
-            CONST_URL: key_or_nah(post_data, CONST_URL)
-            }
-            
+            else:
+                parsed_post = {
+                CONST_AUTHOR: key_or_nah(post_data, CONST_AUTHOR),
+                CONST_CREATED_UTC: key_or_nah(post_data, CONST_CREATED_UTC),
+                CONST_FULL_LINK: key_or_nah(post_data, CONST_FULL_LINK),
+                CONST_ID: key_or_nah(post_data, CONST_ID),
+                CONST_NUMCOMMENTS: key_or_nah(post_data, CONST_NUMCOMMENTS),
+                CONST_NUMCROSSPOSTS: key_or_nah(post_data, CONST_NUMCROSSPOSTS),
+                CONST_RETRIEVED_ON: key_or_nah(post_data, CONST_RETRIEVED_ON),
+                CONST_SCORE: key_or_nah(post_data, CONST_SCORE),
+                CONST_SELFTEXT: key_or_nah(post_data, CONST_SELFTEXT),
+                CONST_SUBREDDIT: key_or_nah(post_data, CONST_SUBREDDIT),
+                CONST_POSTHINT: key_or_nah(post_data, CONST_POSTHINT),
+                CONST_SUBREDDIT_SUBSCRIBERS: key_or_nah(post_data, CONST_SUBREDDIT_SUBSCRIBERS),
+                CONST_TITLE: key_or_nah(post_data, CONST_TITLE),
+                CONST_UPDATED_UTC: key_or_nah(post_data, CONST_UPDATED_UTC),
+                CONST_URL: key_or_nah(post_data, CONST_URL)
+                }
+                
 
-            parsed_posts.append(parsed_post)
+                parsed_posts.append(parsed_post)
             
     return parsed_posts
 
@@ -507,3 +508,12 @@ def key_or_nah(dictionary, key): #
         return dictionary[key]
     else:
         return None
+
+def enqueue_post_ids(post_list, post_ids):
+    for post in post_list:
+        if post['id'] in post_ids:
+            nothing = "do nothing"
+        else:
+            post_ids[post['id']] = False #add post to the post_ids list. Indicate that the post has not been processed yet
+    return post_ids
+    
