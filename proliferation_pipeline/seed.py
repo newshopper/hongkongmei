@@ -9,6 +9,47 @@ import time
 import os
 import sys
 
+##################################################################
+# Programming TODO:
+#
+# Create checkpoint system for queue loop: saving queue, post_ids and author_ids
+# # # Store dict/json file in checkpoint folder. Specify file in python seed.py update /checkpoint/filename.json
+#
+# Speed up user_activity function  
+# # # Limit sleep time? Contact Pushshift? Post in r/redditdev?
+#
+# Reorganize pipeline code
+# # # Strip seed.py to basics and move pipeline functions
+# # # Eliminate praw function
+# # # To many things in pipeline functions. 
+# # # # # # Split between pipeline queueing and data calls 
+# 
+# Comment code
+# # # Descriptions for each function 
+# # # step by step description for seed.py
+#
+# Clean up repo?
+# # # Which files are necessary? Remove OCR stuff? 
+#
+# Write readme
+# # # Remember to credit shuai
+# # # Repo description and how to use it 
+# # # # # # i.e. Step 1: Set up DB and environment variables Step2: hkpostfilter_test.py, Step 3: ....
+# # # Add function descriptions
+################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Seed posts
 ## Three options for general seed
 # First post about blizzard suspension to gain big traction in major subreddit: https://www.reddit.com/r/hearthstone/comments/dehdhm/blizzard_taiwan_deleted_hearthstone_grandmasters/   

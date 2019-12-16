@@ -219,7 +219,7 @@ def get_post_comment_ids(post_id):
     full_url = post_comment_endpoint + post_id #adds post id to the url string
 
     request = requests.get(url=full_url)
-
+    data = []
     if request.status_code == 200:
         response = request.json()
         data = response['data']
@@ -232,6 +232,7 @@ def get_post_comment_ids(post_id):
         print("something went wrong")
         print("Tried to pull comment ids of: {}".format(post_id))
         print(f'status code: {request.status_code}')
+        
         #sys.exit()
 
     return data
