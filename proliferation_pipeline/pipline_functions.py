@@ -98,7 +98,7 @@ def get_posts_data(post_ids):
             print("something went wrong")
             print(f"Tried to pull post data from posts: {fetching_posts}")
             print(f'status code: {request.status_code}')
-            sys.exit()     
+            #sys.exit()     
 
     return all_post_data
     
@@ -232,7 +232,7 @@ def get_post_comment_ids(post_id):
         print("something went wrong")
         print("Tried to pull comment ids of: {}".format(post_id))
         print(f'status code: {request.status_code}')
-        sys.exit()
+        #sys.exit()
 
     return data
 
@@ -297,7 +297,7 @@ def get_comments_data(post_id,comment_ids):
             print("Tried to pull comment data from post: {}".format(post_id))
             print(f'Tried to pull comments from indices {returned_comments} to {returned_comments + incoming_comments}')
             print(f'status code: {request.status_code}')
-            sys.exit()
+            #sys.exit()
         
         
         returned_comments = returned_comments + incoming_comments #increment our returned comments for the while loop
