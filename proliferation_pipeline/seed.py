@@ -49,21 +49,20 @@ def main(write):
     
     blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
     mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
-    # crossposts = get_crossposts_praw("dej74n")
-    # if len(crossposts) > 0:
-    #     print(crossposts[0]['author'])
     
-    # posts_data = get_posts_data([blitzchung_seed_id, mei_seed_id])
-    # comment_ids = get_post_comment_ids(blitzchung_seed_id)
-    # comments_data = get_comments_data(blitzchung_seed_id,comment_ids)
-    # #posts_data = map(parse_post, posts_data)
+    #proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, 0)
+    
+    seed_post,post_queue,post_ids,author_ids, since, until = initialize_pipeline(blitzchung_seed_id)
+    count = 0
+    while post_queue:
+        post = post_queue.pop(0)
+        print(f"Popping off post: {post['id']}")
+        post_queue, post_ids, author_ids, since, until, count = proliferate(post, post_queue, post_ids, author_ids, since, until, count)
+        
+    
 
-   
-    # created_utc = 1570435322
-    # author = "williamthebastardd"
 
 
-    initialize_pipeline(blitzchung_seed_id)
     
 def initialize_pipeline(seed_id):
     print("Initializing pipeline ... feeding in seed post")
@@ -80,8 +79,8 @@ def initialize_pipeline(seed_id):
 
     post_ids[parsed_seed_post['id']] = False
     post_queue.append(parsed_seed_post)
-    proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, 0)
-
+    
+    return seed_post,post_queue,post_ids,author_ids, since, until
 
 def proliferate(post, post_queue, post_ids, author_ids, since, until, count):
     '''
@@ -90,7 +89,7 @@ def proliferate(post, post_queue, post_ids, author_ids, since, until, count):
     are relevant to the Hong Kong protests. Comments are also similarly processed based on relevance.
     '''
     count = count + 1
-    # if count > 12:
+    # if count > 4:
     #     print(post_queue)
     #     print(post_ids)
     #     sys.exit()
@@ -151,17 +150,17 @@ def proliferate(post, post_queue, post_ids, author_ids, since, until, count):
         #post_queue = post_queue + new_posts
         print([x['id'] for x in post_queue])
         # remove processed post from the queue
-        if len(post_queue) > 0:
-            post_queue.pop(0)
-            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
-        else:
-            print("Done!")
+        #if len(post_queue) > 0:
+            #post_queue.pop(0)
+        #proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
+        return post_queue, post_ids, author_ids, since, until, count #return updated queue 
     else:
         post_ids[post['id']] = True
-        post_queue.pop(0)
-        if len(post_queue) > 0:
-            proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
-
+        #print(f"Not relevent: {post['id']}")
+        #post_queue.pop(0)
+        #if len(post_queue) > 0:
+        #proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, count)
+        return post_queue, post_ids, author_ids, since, until, count #return updated queue
 
 if __name__ == "__main__":
     correct_input = False

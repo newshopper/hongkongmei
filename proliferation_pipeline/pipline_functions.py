@@ -142,7 +142,7 @@ def get_crosspost_ids(url):
         print("something went wrong")
         print(f"Tried to pull crosspost data from url: {url}")
         print(f'status code: {request.status_code}')
-        sys.exit()  
+        #sys.exit()  
 
     return crosspost_ids
 
