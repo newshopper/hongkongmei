@@ -15,13 +15,16 @@ import sys
 # Create checkpoint system for queue loop: saving queue, post_ids and author_ids
 # # # Store dict/json file in checkpoint folder. Specify file in python seed.py update /checkpoint/filename.json
 #
-# Speed up user_activity function  
-# # # Limit sleep time? Contact Pushshift? Post in r/redditdev?
+# Fix various coding issues
+# # # Speed up user_activity function  
+# # # # # # Limit sleep time? Contact Pushshift? Post in r/redditdev?
+# # # Figure out why we are returning posts outside our date range
+# # # Fix crossposts count in post data 
 #
 # Reorganize pipeline code
 # # # Strip seed.py to basics and move pipeline functions
 # # # Eliminate praw function
-# # # To many things in pipeline functions. 
+# # # Too many things in pipeline functions. 
 # # # # # # Split between pipeline queueing and data calls 
 # 
 # Comment code
