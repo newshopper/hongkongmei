@@ -67,9 +67,9 @@ import sys
  #######################################################################################
 # Bring in environment variables to connect to aws rds db
 #
-# To set environment variables in windows, run the following command in command prompt:
+# To set environment variables in Windows, run the following command in command prompt:
 # set [variable_name]=[variable_value]
-# For Mac set the variables in the .bash file.
+# For Mac set the variables in the .bash_profile file.
 #######################################################################################
 
 port = int(os.environ.get("port"))
