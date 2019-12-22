@@ -59,6 +59,6 @@ Blizzard, Hearthstone's developer announced the next day that they had suspended
 In one notable case, users adopted "Mei," a playable cannonically chinese character from Blizzard's Overwatch game, as a symbol of the Hong Kong protesters. The "Pro-Hong Kong Mei" meme was iterated upon many times and posts featuring her were among the most upvoted of all posts related to the controversy. The speed at which Mei was adopted is a quintessential example of internet subcultures responding to world events in real time.
 
 Using the hongkongmei tool, we developed a better understanding of the driving forces behind the propagation of the protests in Hong Kong. We were able to trace conversation about the protests to hundreds of subreddits and thousands of users. A visualization of related subreddits and the timeline of the proliferation can be found here:
-[Hong Kong, Blizzard, gamers and a fight waged on Reddit](https://observablehq.com/@aaronbrezel/hong-kong-blizzard-gamers-and-a-fight-waged-on-reddit, "HongKong").
+https://observablehq.com/@aaronbrezel/hong-kong-blizzard-gamers-and-a-fight-waged-on-reddit
 
 
