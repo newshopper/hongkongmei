@@ -140,9 +140,9 @@ class StanceClassification:
         return model
 
 
-def main():
-    data_file1 = "comment_activity_with_tags.csv"
-    data_file2 = "post_activity_with_tags.csv"
+def main(data_file1, data_file2):
+    # data_file1 = "comment_activity_with_tags.csv"
+    # data_file2 = "post_activity_with_tags.csv"
     # scores = []
 
     nlp_model = StanceClassification()
@@ -204,6 +204,10 @@ def predict(text):
 
 
 if __name__ == '__main__':
-    main()
-    # predict_test()
-    print(predict("Hong Kong protests started last week"))
+    try:
+        training_file1 = sys.argv[1]
+        training_file2 = sys.argv[2]
+    except:
+        print('Missing training file arguments')
+        sys.exit()
+    main(training_file1, training_file2)

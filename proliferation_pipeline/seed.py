@@ -68,7 +68,8 @@ import sys
 # Bring in environment variables to connect to aws rds db
 #
 # To set environment variables in windows, run the following command in command prompt:
-# set [variable_name]=[variable_value] 
+# set [variable_name]=[variable_value]
+# For Mac set the variables in the .bash file.
 #######################################################################################
 
 port = int(os.environ.get("port"))
@@ -83,20 +84,18 @@ cur = set_cursor(conn)
 
 
 
-def main(write):
+def main(write, seed_id, time_range):
     # if we have chosen to overwrite the database then run the following commands
-    
+    print('Calling main...')
     if write == 'overwrite':
         wipe_database(cur) #wipe database to give ourselves a clear slate every time we run this seed script
         create_tables(cur,conn)
 
     
-    blitzchung_seed_id = "degek8" #post id of our approximate first post about blitzchung 
-    mei_seed_id = "df2rz7" #post id of our definite first post memeing mei
+    # blitzchung_seed_id = "degek8" post id of our approximate first post about blitzchung 
+    # mei_seed_id = "df2rz7" post id of our definite first post memeing mei
     
-    #proliferate(post_queue[0], post_queue, post_ids, author_ids, since, until, 0)
-    
-    seed_post,post_queue,post_ids,author_ids, since, until = initialize_pipeline(blitzchung_seed_id)
+    seed_post,post_queue,post_ids,author_ids, since, until = initialize_pipeline(seed_id, time_range)
     count = 0
     while post_queue:
         post = post_queue.pop(0)
@@ -104,11 +103,11 @@ def main(write):
         post_queue, post_ids, author_ids, since, until, count = proliferate(post, post_queue, post_ids, author_ids, since, until, count)
         
     
-
-
-
-    
-def initialize_pipeline(seed_id):
+def initialize_pipeline(seed_id, time_range):
+    '''
+    Accepts the seed_id and time_range and fetches the seed post. Parses the post and adds it to the post queue
+    Returns the seed post, post_queue, post_ids, start date and end date for the proliferation tracking.
+    '''
     print("Initializing pipeline ... feeding in seed post")
     
     post_ids = {} #establish dictionary to track queued and processed posts. Key is the post id. "False" means the post has been queued, but not processed. "True" means the post has been processed
@@ -119,7 +118,7 @@ def initialize_pipeline(seed_id):
 
     #Create time window to track user interaction
     since = parsed_seed_post['created_utc'] 
-    until = since + 259200 #604800 #One week (in seconds) after seed post was posted
+    until = since + time_range #259200 #604800 #One week (in seconds) after seed post was posted
 
     post_ids[parsed_seed_post['id']] = False
     post_queue.append(parsed_seed_post)
@@ -208,6 +207,8 @@ def proliferate(post, post_queue, post_ids, author_ids, since, until, count):
 
 if __name__ == "__main__":
     correct_input = False
+    correct_time = False
+    time_range = 0
     try: 
         write = sys.argv[1] 
         if write == "overwrite" or write == "update":
@@ -216,11 +217,21 @@ if __name__ == "__main__":
             print("Invalid argument") 
             print("'overwrite' to wipe database and start over. 'update' to pick up where you left off.")
             sys.exit()
+        
+        seed_id = sys.argv[2]
+        time_range = int(sys.argv[3])
+        if time_range >= 0:
+            correct_time = True
+        else:
+            print("Start time cannot be greater than end time")
+            sys.exit()
+        
     except:
-        print("Missing argument after python script")
+        print("Missing argument(s) after python script")
         print("'overwrite' to wipe database and start over. 'update' to pick up where you left off.")
+        print(sys.argv)
         sys.exit()
 
-    if correct_input:
-        main(write)
+    if correct_input and correct_time:
+        main(write, seed_id, time_range)
     
